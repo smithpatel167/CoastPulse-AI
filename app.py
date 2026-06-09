@@ -123,17 +123,44 @@ if user_input:
     country_iso = GLOBAL_COUNTRIES[selected_country]
 
     if st.session_state.selected_location_data is None:
-        # Pre-cleaning search token for explicit precision
         clean_input = user_input.lower().strip()
         search_term = user_input
+        is_override = False
+        override_candidates = []
 
-        # 1. FOOLPROOF OVERRIDES: Instantly catch specific target text tokens before AI logic
-        if "jampore" in clean_input or "devka" in clean_input:
-            search_term = "Daman, India"
-        elif "calangute" in clean_input or "baga" in clean_input or "anjuna" in clean_input:
-            search_term = "Panaji, Goa, India"
-        else:
-            # 2. DYNAMIC AI ROUTER FOR ALL OTHER GLOBAL ENTRIES
+        # 1. HARDCODED MULTI-LOCATION OVERRIDES FOR PERFECT DESTINATION HIT
+        if clean_input == "goa" and (selected_country == "India" or selected_country == "Choose"):
+            is_override = True
+            st.markdown('<div class="disambiguation-box">', unsafe_allow_html=True)
+            st.markdown(
+                "🔍 **Famous coastal beaches in Goa have been identified. Please select your destination beach:**")
+            goa_beaches = [
+                {"name": "Calangute Beach (Goa)", "latitude": 15.5444, "longitude": 73.7554, "country": "India"},
+                {"name": "Baga Beach (Goa)", "latitude": 15.5562, "longitude": 73.7517, "country": "India"},
+                {"name": "Anjuna Beach (Goa)", "latitude": 15.5828, "longitude": 73.7411, "country": "India"},
+                {"name": "Colva Beach (Goa)", "latitude": 15.2758, "longitude": 73.9116, "country": "India"},
+                {"name": "Palolem Beach (Goa)", "latitude": 15.0100, "longitude": 74.0232, "country": "India"}
+            ]
+            for idx, beach in enumerate(goa_beaches):
+                if st.button(f"📍 {beach['name']}", key=f"goa_beach_{idx}"):
+                    st.session_state.selected_location_data = beach
+                    st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        elif "jampore" in clean_input or "devka" in clean_input:
+            is_override = True
+            st.markdown('<div class="disambiguation-box">', unsafe_allow_html=True)
+            st.markdown("🔍 **Top destination entries identified matching your query:**")
+            display_label = "📍 Jampore Beach, Daman (India)" if "jampore" in clean_input else "📍 Devka Beach, Daman (India)"
+            daman_coords = {"name": "Jampore Beach (Daman)" if "jampore" in clean_input else "Devka Beach (Daman)",
+                            "latitude": 20.3840, "longitude": 72.8258, "country": "India"}
+            if st.button(display_label, key="daman_override_btn"):
+                st.session_state.selected_location_data = daman_coords
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        # 2. DYNAMIC PIPELINE ROUTER FOR GLOBAL SEARCHES
+        if not is_override:
             try:
                 client = AzureOpenAI(
                     api_key=st.secrets["AZURE_OPENAI_API_KEY"],
@@ -144,7 +171,7 @@ if user_input:
                 router_prompt = f"""
                 The user typed this location: "{user_input}" inside the country selection context: "{selected_country}".
                 Optimize this input for a city-based geocoding database:
-                1. If it's a broad province, state, or island group (like 'Goa', 'Bali', 'Maldives'), return its primary coastal administrative capital/city (e.g., 'Panaji' for Goa, 'Denpasar' for Bali, 'Male' for Maldives).
+                1. If it's a broad province, state, or island group (like 'Bali', 'Maldives'), return its primary coastal administrative capital/city (e.g., 'Denpasar' for Bali, 'Male' for Maldives).
                 2. If it's a specific beach or smaller area, return the nearest major coastal town or district name.
                 3. If it's already a standard specific coastal city (like 'Sydney', 'Miami', 'Mumbai'), return it exactly as it is.
                 Output ONLY the raw processed city/town name string. No formatting, no quotes.
@@ -157,65 +184,58 @@ if user_input:
                     temperature=0.0
                 )
                 search_term = router_response.choices[0].message.content.strip()
-                if selected_country != "-" and selected_country not in search_term:
+                if selected_country != "Choose" and selected_country not in search_term:
                     search_term = f"{search_term}, {selected_country}"
             except:
-                search_term = f"{user_input}, {selected_country}" if selected_country != "-" else user_input
+                search_term = f"{user_input}, {selected_country}" if selected_country != "Choose" else user_input
 
-        # 3. GEOCODING PIPELINE EXECUTION
-        geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={urllib.parse.quote_plus(search_term)}&count=20&language=en&format=json"
+            # 3. GLOBAL GEOCODING API CALL
+            geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={urllib.parse.quote_plus(search_term)}&count=20&language=en&format=json"
 
-        try:
-            geo_res = requests.get(geo_url).json()
+            try:
+                geo_res = requests.get(geo_url).json()
 
-            if "results" in geo_res and len(geo_res["results"]) > 0:
-                all_candidates = geo_res["results"]
+                if "results" in geo_res and len(geo_res["results"]) > 0:
+                    all_candidates = geo_res["results"]
 
-                prioritized_candidates = []
-                other_candidates = []
+                    prioritized_candidates = []
+                    other_candidates = []
 
-                for candidate in all_candidates:
-                    candidate_country_iso = candidate.get("country_code", "").upper()
-                    # Safe check for both strict country dropdown match and fallback routing targets
-                    if country_iso and (
-                            candidate_country_iso == country_iso.upper() or "india" in search_term.lower() and candidate_country_iso in [
-                        "IN", ""]):
-                        prioritized_candidates.append(candidate)
-                    else:
-                        other_candidates.append(candidate)
-
-                final_candidates = prioritized_candidates + other_candidates
-                display_candidates = final_candidates[:4]
-
-                if display_candidates:
-                    st.markdown('<div class="disambiguation-box">', unsafe_allow_html=True)
-                    st.markdown(f"🔍 **Top destination entries identified matching your query:**")
-
-                    for idx, candidate in enumerate(display_candidates):
-                        c_name = candidate.get("name", "")
-                        c_admin = candidate.get("admin1", "")
-                        c_country = candidate.get("country", "")
-
-                        # Cosmetic rename if it matches our explicit override tokens to keep the UI beautiful
-                        if "jampore" in clean_input:
-                            display_label = f"📍 Jampore Beach, Daman ({c_country})"
-                        elif "devka" in clean_input:
-                            display_label = f"📍 Devka Beach, Daman ({c_country})"
+                    for candidate in all_candidates:
+                        candidate_country_iso = candidate.get("country_code", "").upper()
+                        if country_iso and (
+                                candidate_country_iso == country_iso.upper() or "india" in search_term.lower() and candidate_country_iso in [
+                            "IN", ""]):
+                            prioritized_candidates.append(candidate)
                         else:
+                            other_candidates.append(candidate)
+
+                    final_candidates = prioritized_candidates + other_candidates
+                    display_candidates = final_candidates[:4]
+
+                    if display_candidates:
+                        st.markdown('<div class="disambiguation-box">', unsafe_allow_html=True)
+                        st.markdown(f"🔍 **Top destination entries identified matching your query:**")
+
+                        for idx, candidate in enumerate(display_candidates):
+                            c_name = candidate.get("name", "")
+                            c_admin = candidate.get("admin1", "")
+                            c_country = candidate.get("country", "")
+
                             display_label = f"📍 {c_name}"
                             if c_admin:
                                 display_label += f", {c_admin}"
                             display_label += f" ({c_country})"
 
-                        if st.button(display_label, key=f"candidate_btn_{idx}"):
-                            st.session_state.selected_location_data = candidate
-                            st.rerun()
+                            if st.button(display_label, key=f"candidate_btn_{idx}"):
+                                st.session_state.selected_location_data = candidate
+                                st.rerun()
 
-                    st.markdown('</div>', unsafe_allow_html=True)
-            else:
-                st.error("No matching global locations identified. Please check your spelling configuration.")
-        except Exception as e:
-            st.error(f"Geocoding connection matrix error: {e}")
+                        st.markdown('</div>', unsafe_allow_html=True)
+                else:
+                    st.error("No matching global locations identified. Please check your spelling configuration.")
+            except Exception as e:
+                st.error(f"Geocoding connection matrix error: {e}")
 
 if st.session_state.selected_location_data is not None:
     loc = st.session_state.selected_location_data
@@ -233,7 +253,6 @@ if st.session_state.selected_location_data is not None:
         wave_height = 0.0
         hourly_wave_heights = []
 
-        # Check if the coordinates actually hit ocean/marine grid lines
         if "hourly" in marine_res and marine_res["hourly"] and "wave_height" in marine_res["hourly"] and \
                 marine_res["hourly"]["wave_height"] is not None:
             raw_waves = marine_res["hourly"]["wave_height"]
@@ -241,7 +260,6 @@ if st.session_state.selected_location_data is not None:
             if hourly_wave_heights:
                 wave_height = hourly_wave_heights[0]
         else:
-            # Agar coordinates inland hain toh fallback smoothly handle karega bina crash huye
             hourly_wave_heights = [0.0] * 168
             wave_height = 0.0
 
@@ -315,7 +333,7 @@ if st.session_state.selected_location_data is not None:
             badge_class = "badge-safe"
             bg_img = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80"
 
-        # Display Main Result Card Layout (Wiped unneeded technical footnote details)
+        # Display Main Result Card Layout
         st.markdown(f"""
             <div class="result-card" style="background-image: url('{bg_img}');">
                 <div class="card-overlay"></div>
