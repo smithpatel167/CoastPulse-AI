@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 
 st.set_page_config(page_title="CoastPulse AI", page_icon="🌊", layout="centered")
 
-# Premium UI/UX Design System
+# Premium Dynamic UX Core Canvas CSS
 st.markdown("""
 <style>
     .stApp { background: radial-gradient(circle at top, #e3f2fd 0%, #ffffff 100%); }
@@ -71,7 +71,7 @@ if "selected_location_data" not in st.session_state:
 if "previous_query" not in st.session_state:
     st.session_state.previous_query = ""
 
-# Layout Input Rows
+# Input Presentation Rows
 country_col, input_col, profile_col = st.columns([1, 1.5, 1.5])
 with country_col:
     selected_country = st.selectbox("Country Context:", list(GLOBAL_COUNTRIES.keys()))
@@ -86,10 +86,12 @@ if user_input != st.session_state.previous_query:
     st.session_state.previous_query = user_input
 
 if user_input:
+    country_iso = GLOBAL_COUNTRIES[selected_country]
+
     if st.session_state.selected_location_data is None:
         search_term = user_input
 
-        # STAGE 1: DYNAMIC GEOSPATIAL INTELLIGENCE AGENT
+        # STAGE 1: DYNAMIC LLM GEOSPATIAL SEARCH ANCHOR AGENT
         try:
             client = AzureOpenAI(
                 api_key=st.secrets["AZURE_OPENAI_API_KEY"],
@@ -98,62 +100,87 @@ if user_input:
             )
 
             router_prompt = f"""
-            You are a geospatial query cleaner. The user searched for: "{user_input}" under country scope: "{selected_country}".
-            Your single job is to return ONLY a specific, valid coastal city or town name string that can be found in a standard global atlas.
-            - If it's a broad state, island group, or province (like 'Goa', 'Bali', 'Maldives'), output its primary coastal capital or hub city (e.g., 'Panaji' for Goa, 'Denpasar' for Bali, 'Male' for Maldives).
-            - If it's an explicit beach name (like 'Jampore', 'Devka', 'Baga', 'Calangute'), output its official matching coastal city or district municipality (e.g., 'Daman' for Jampore/Devka, 'Panaji' for Baga/Calangute).
-            - If it's already a standard coastal city (like 'Sydney', 'Miami', 'Mumbai') or has spelling typos (like 'melborn'), fix it and output the clean city name (e.g., 'Melbourne').
+            You are a master geospatial query optimizer for a premium marine safety platform.
+            The user searched for: "{user_input}" under the regional context filter: "{selected_country}".
 
-            CRITICAL: Output ONLY the raw city/town name string. Do NOT include commas, country names, markdown, quotes, punctuation, or any introductory phrases.
-            Example Output: Panaji
+            Your job is to optimize this input dynamically into a space-separated string containing specific city/town metadata:
+            1. If it's a broad state, archipelago, or territory (like 'Goa', 'Bali', 'Maldives'), identify and output its primary coastal administrative center city/town, followed by the state name if applicable, and the country name (e.g., 'Panaji Goa India' for Goa, 'Denpasar Bali Indonesia' for Bali, 'Male Maldives' for Maldives).
+            2. If it's a specific beach or smaller resort strip (like 'Jampore', 'Devka', 'Baga', 'Calangute'), identify its verified parent coastal city or municipality district (e.g., 'Daman India' for Jampore or Devka, 'Panaji Goa India' for Baga or Calangute).
+            3. If it's already a standard coastal city or has mild typos (like 'melborn' or 'Miami'), clean the spelling and append the target country context natively (e.g., 'Melbourne Australia' or 'Miami United States').
+
+            CRITICAL DESIGN RULES:
+            - Do NOT include commas, quotes, periods, bullet points, markdown, or text explanations.
+            - Output ONLY the raw space-separated query target string.
+            Example Output: Panaji Goa India
             """
 
             router_response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": router_prompt}],
-                max_tokens=20,
-                temperature=0.0
+                max_tokens=30,
+                temperature=0.0  # Force extreme determinism
             )
             search_term = router_response.choices[0].message.content.strip()
         except:
-            search_term = user_input
+            search_term = f"{user_input} {selected_country}" if selected_country != "Choose" else user_input
 
-        # STAGE 2: CLEAN, LOCK-FREE GEOLOCATION DISCOVERY
-        geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={urllib.parse.quote_plus(search_term)}&count=5&language=en&format=json"
+        # STAGE 2: RESILIENT, SMART CONTEXT DISCOVERY MATRIX
+        geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={urllib.parse.quote_plus(search_term)}&count=10&language=en&format=json"
 
         try:
             geo_res = requests.get(geo_url).json()
 
             if "results" in geo_res and len(geo_res["results"]) > 0:
-                display_candidates = geo_res["results"][:4]
+                all_candidates = geo_res["results"]
+                prioritized_candidates = []
+                fallback_candidates = []
 
-                st.markdown('<div class="disambiguation-box">', unsafe_allow_html=True)
-                st.markdown(f"🔍 **Top destination entries identified matching your query:**")
+                # Intelligent candidate filtering targeting strict contextual matching boundaries
+                for candidate in all_candidates:
+                    c_code = candidate.get("country_code", "").upper()
+                    c_country_name = candidate.get("country", "").lower()
 
-                for idx, candidate in enumerate(display_candidates):
-                    c_name = candidate.get("name", "Verified Location")
-                    c_admin = candidate.get("admin1", "")
-                    c_country = candidate.get("country", "")
+                    if country_iso and c_code == country_iso.upper():
+                        prioritized_candidates.append(candidate)
+                    elif selected_country != "Choose" and selected_country.lower() in c_country_name:
+                        prioritized_candidates.append(candidate)
+                    else:
+                        fallback_candidates.append(candidate)
 
-                    display_label = f"📍 {c_name}"
-                    if c_admin and c_admin.lower() != c_name.lower():
-                        display_label += f", {c_admin}"
-                    if c_country:
-                        display_label += f" ({c_country})"
+                # Dynamic panel binding assignment
+                display_candidates = prioritized_candidates[:4] if prioritized_candidates else fallback_candidates[:4]
 
-                    if user_input.lower() not in c_name.lower() and len(user_input) > 2:
-                        display_label = f"📍 {user_input.capitalize()} Coastline Sector - {c_name} ({c_country})"
+                if display_candidates:
+                    st.markdown('<div class="disambiguation-box">', unsafe_allow_html=True)
+                    st.markdown(f"🔍 **Top destination entries identified matching your query:**")
 
-                    if st.button(display_label, key=f"candidate_btn_{idx}"):
-                        st.session_state.selected_location_data = candidate
-                        st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
+                    for idx, candidate in enumerate(display_candidates):
+                        c_name = candidate.get("name", "Verified Destination")
+                        c_admin = candidate.get("admin1", "")
+                        c_country = candidate.get("country", "")
+
+                        display_label = f"📍 {c_name}"
+                        if c_admin and c_admin.lower() != c_name.lower():
+                            display_label += f", {c_admin}"
+                        if c_country:
+                            display_label += f" ({c_country})"
+
+                        # Add a clean user context banner overlay label if user typed a known beach token
+                        if user_input.lower() not in c_name.lower() and len(user_input) > 2:
+                            display_label = f"📍 {user_input.capitalize()} Coastline Sector - {c_name} ({c_country})"
+
+                        if st.button(display_label, key=f"candidate_btn_{idx}"):
+                            st.session_state.selected_location_data = candidate
+                            st.rerun()
+                    st.markdown('</div>', unsafe_allow_html=True)
+                else:
+                    st.error("No matching global locations identified inside the specified country parameter boundary.")
             else:
                 st.error("No matching global locations identified. Please check your spelling configuration.")
         except Exception as e:
             st.error(f"Geocoding connection matrix error: {e}")
 
-# STAGE 3: TELEMETRY AND ANALYSIS PIPELINE
+# STAGE 3: REAL-TIME TELEMETRY AND ANALYSIS PIPELINE
 if st.session_state.selected_location_data is not None:
     loc = st.session_state.selected_location_data
     lat, lon = loc["latitude"], loc["longitude"]
@@ -210,7 +237,7 @@ if st.session_state.selected_location_data is not None:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are the primary orchestration engine for CoastPulse AI. Output a valid JSON block containing exactly three keys: 'status' (SAFE, CAUTION, or CLOSED BY AUTHORITY), 'bg_type' (safe, caution, or danger), and 'description' (a smooth 3-sentence safety summary)."
+                        "content": "You are the primary orchestration engine for CoastPulse AI. Output a valid JSON block containing exactly three keys: 'status' (SAFE, CAUTION, or CLOSED BY AUTHORITY), 'bg_type' (safe, caution, or danger), and 'description' (a smooth 3-sentence summary)."
                     },
                     {"role": "user", "content": evaluation_payload}
                 ],
@@ -230,7 +257,7 @@ if st.session_state.selected_location_data is not None:
             else:
                 status = "SAFE"
                 bg_type = "safe"
-                ai_description = f"Stable parameters monitored at {loc_name}. Wave height is completely calm at {wave_height}m, making it clear for a {skill_level} profile."
+                ai_description = f"Stable parameters monitored around {loc_name}. Wave height is trending calm at {wave_height}m, making conditions clear for a {skill_level} profile."
 
         if bg_type == "danger":
             badge_class = "badge-danger"
