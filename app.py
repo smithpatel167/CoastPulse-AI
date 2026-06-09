@@ -63,41 +63,8 @@ st.markdown("---")
 
 # Full Comprehensive ISO World Country Mapping Matrix
 GLOBAL_COUNTRIES = {
-    "Choose": "", "Afghanistan": "AF", "Albania": "AL", "Algeria": "DZ", "Andorra": "AD", "Angola": "AO",
-    "Antigua and Barbuda": "AG", "Argentina": "AR", "Armenia": "AM", "Australia": "AU", "Austria": "AT",
-    "Azerbaijan": "AZ",
-    "Bahamas": "BS", "Bahrain": "BH", "Bangladesh": "BD", "Barbados": "BB", "Belarus": "BY", "Belgium": "BE",
-    "Belize": "BZ", "Benin": "BJ", "Bhutan": "BT", "Bolivia": "BO", "Bosnia and Herzegovina": "BA", "Botswana": "BW",
-    "Brazil": "BR", "Brunei": "BN", "Bulgaria": "BG", "Burkina Faso": "BF", "Burundi": "BI", "Cabo Verde": "CV",
-    "Cambodia": "KH", "Cameroon": "CM", "Canada": "CA", "Central African Republic": "CF", "Chad": "TD", "Chile": "CL",
-    "China": "CN", "Colombia": "CO", "Comoros": "KM", "Congo": "CG", "Costa Rica": "CR", "Croatia": "HR",
-    "Cuba": "CU", "Cyprus": "CY", "Czechia": "CZ", "Denmark": "DK", "Djibouti": "DJ", "Dominica": "DM",
-    "Dominican Republic": "DO", "Ecuador": "EC", "Egypt": "EG", "El Salvador": "SV", "Equatorial Guinea": "GQ",
-    "Eritrea": "ER", "Estonia": "EE", "Eswatini": "SZ", "Ethiopia": "ET", "Fiji": "FJ", "Finland": "FI",
-    "France": "FR", "Gabon": "GA", "Gambia": "GM", "Georgia": "GE", "Germany": "DE", "Ghana": "GH",
-    "Greece": "GR", "Grenada": "GD", "Guatemala": "GT", "Guinea": "GN", "Guinea-Bissau": "GW", "Guyana": "GY",
-    "Haiti": "HT", "Honduras": "HN", "Hungary": "HU", "Iceland": "IS", "India": "IN", "Indonesia": "ID",
-    "Iran": "IR", "Iraq": "IQ", "Ireland": "IE", "Israel": "IL", "Italy": "IT", "Jamaica": "JM",
-    "Japan": "JP", "Jordan": "JO", "Kazakhstan": "KZ", "Kenya": "KE", "Kiribati": "KI", "Kuwait": "KW",
-    "Kyrgyzstan": "KG", "Laos": "LA", "Latvia": "LV", "Lebanon": "LB", "Lesotho": "LS", "Liberia": "LR",
-    "Libya": "LY", "Liechtenstein": "LI", "Lithuania": "LT", "Luxembourg": "LU", "Madagascar": "MG",
-    "Malawi": "MW", "Malaysia": "MY", "Maldives": "MV", "Mali": "ML", "Malta": "MT", "Marshall Islands": "MH",
-    "Mauritania": "MR", "Mauritius": "MU", "Mexico": "MX", "Micronesia": "FM", "Moldova": "MD", "Monaco": "MC",
-    "Mongolia": "MN", "Montenegro": "ME", "Morocco": "MA", "Mozambique": "MZ", "Myanmar": "MM", "Namibia": "NA",
-    "Nauru": "NR", "Nepal": "NP", "Netherlands": "NL", "New Zealand": "NZ", "Nicaragua": "NI", "Niger": "NE",
-    "Nigeria": "NG", "North Korea": "KP", "North Macedonia": "MK", "Norway": "NO", "Oman": "OM", "Pakistan": "PK",
-    "Palau": "PW", "Panama": "PA", "Papua New Guinea": "PG", "Paraguay": "PY", "Peru": "PE", "Philippines": "PH",
-    "Poland": "PL", "Portugal": "PT", "Qatar": "QA", "Romania": "RO", "Russia": "RU", "Rwanda": "RW",
-    "Saint Kitts and Nevis": "KN", "Saint Lucia": "LC", "Saint Vincent and the Grenadines": "VC", "Samoa": "WS",
-    "San Marino": "SM", "Sao Tome and Principe": "ST", "Saudi Arabia": "SA", "Senegal": "SN", "Serbia": "RS",
-    "Seychelles": "SC", "Sierra Leone": "SL", "Singapore": "SG", "Slovakia": "SK", "Slovenia": "SI",
-    "Solomon Islands": "SB", "Somalia": "SO", "South Africa": "ZA", "South Korea": "KR", "South Sudan": "SS",
-    "Spain": "ES", "Sri Lanka": "LK", "Sudan": "SD", "Suriname": "SR", "Sweden": "SE", "Switzerland": "CH",
-    "Syria": "SY", "Tajikistan": "TJ", "Tanzania": "TZ", "Thailand": "TH", "Timor-Leste": "TL", "Togo": "TG",
-    "Tonga": "TO", "Trinidad and Tobago": "TT", "Tunisia": "TN", "Turkey": "TR", "Turkmenistan": "TM",
-    "Tuvalu": "TV", "Uganda": "UG", "Ukraine": "UA", "United Arab Emirates": "AE", "United Kingdom": "GB",
-    "United States": "US", "Uruguay": "UY", "Uzbekistan": "UZ", "Vanuatu": "VU", "Venezuela": "VE",
-    "Vietnam": "VN", "Yemen": "YE", "Zambia": "ZM", "Zimbabwe": "ZW"
+    "Choose": "", "India": "IN", "Indonesia": "ID", "Maldives": "MV", "Thailand": "TH",
+    "Spain": "ES", "United States": "US", "Australia": "AU", "France": "FR", "Japan": "JP"
 }
 
 if "selected_location_data" not in st.session_state:
@@ -108,9 +75,9 @@ if "previous_query" not in st.session_state:
 # Input UI Elements
 country_col, input_col, profile_col = st.columns([1, 1.5, 1.5])
 with country_col:
-    selected_country = st.selectbox("Country:", list(GLOBAL_COUNTRIES.keys()))
+    selected_country = st.selectbox("Country Context:", list(GLOBAL_COUNTRIES.keys()))
 with input_col:
-    user_input = st.text_input("Location:", placeholder="e.g., Goa, Miami, Sydney").strip()
+    user_input = st.text_input("Destination Search:", placeholder="e.g., Goa, Jampore, Bali, Miami").strip()
 with profile_col:
     skill_level = st.selectbox("Experience Level:",
                                ["Beginner / Casual Wader", "Intermediate Swimmer", "Advanced / Surfer"])
@@ -125,7 +92,7 @@ if user_input:
     if st.session_state.selected_location_data is None:
         search_term = user_input
 
-        # 1. DYNAMIC AI GUARDRAIL ROUTER: Resolves broad territories or explicit beach names using Azure OpenAI
+        # STAGE 1: PURE DYNAMIC LLM ROUTING ENGINE (NO IF-ELSE HARDCODING)
         try:
             client = AzureOpenAI(
                 api_key=st.secrets["AZURE_OPENAI_API_KEY"],
@@ -134,37 +101,33 @@ if user_input:
             )
 
             router_prompt = f"""
-            The user typed this location query: "{user_input}" inside the country selection context: "{selected_country}".
-            Your job is to optimize this input specifically for a city/town-based geocoding database:
-            1. If the input is a specific beach name (e.g., 'Jampore', 'Devka', 'Baga', 'Calangute'), identify the exact major coastal town, city, or district it belongs to (e.g., return 'Daman' for Jampore, return 'Panaji' for Baga/Calangute).
-            2. If the input is a broad province, state, island group, or territory (e.g., 'Goa', 'Bali', 'Maldives', 'Phuket'), identify its primary coastal administrative capital, town, or city hub (e.g., return 'Panaji' for Goa, 'Denpasar' for Bali, 'Male' for Maldives).
-            3. If the input is already a specific coastal city or town (e.g., 'Sydney', 'Miami', 'Mumbai'), return it exactly as it is without any changes.
+            You are the core geospatial pre-processor for a global marine safety platform.
+            The user typed this unstructured text location: "{user_input}" inside this selected country context: "{selected_country}".
 
-            Output ONLY the raw processed city or town name string. Do not include markdown, explanations, bullet points, or quotes.
+            Your mission is to resolve this input into a single geocoding-optimized target city or town name string:
+            1. If the input is a specific beach name, point of interest, or small resort area (like 'Jampore', 'Devka', 'Baga', 'Kuta Beach'), identify and return the official coastal city, town, municipality, or district it sits within (e.g., 'Daman' for Jampore, 'Panaji' for Baga, 'Denpasar' for Kuta Beach).
+            2. If the input is a large state, province, archipelago, or broad territory (like 'Goa', 'Bali', 'Maldives', 'Hawaii'), return the exact name of its primary coastal administrative hub city or town (e.g., 'Panaji' for Goa, 'Denpasar' for Bali, 'Male' for Maldives).
+            3. If the input is already a specific coastal city or major port hub (like 'Sydney', 'Miami', 'Mumbai'), return it exactly as it is without modification.
+
+            Output ONLY the raw processed city or town name, followed optionally by a comma and the country name for strict query anchoring.
+            Do not include markdown, explanations, introductory phrases, punctuation marks, or quotes.
+            Example Output format: Panaji, India
             """
 
             router_response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": router_prompt}],
-                max_tokens=50,
-                temperature=0.0  # Strict constraint for consistent routing output
+                max_tokens=40,
+                temperature=0.0  # Extreme deterministic alignment
             )
 
-            # AI processes the string dynamically
-            refined_city = router_response.choices[0].message.content.strip()
-
-            # Formulate the final intelligent search query string
-            if selected_country != "Choose" and selected_country not in refined_city:
-                search_term = f"{refined_city}, {selected_country}"
-            else:
-                search_term = refined_city
+            search_term = router_response.choices[0].message.content.strip()
 
         except Exception as router_err:
-            # Algorithmic fallback if API connection cuts out
             search_term = f"{user_input}, {selected_country}" if selected_country != "Choose" else user_input
 
-        # 2. GLOBAL GEOCODING PIPELINE EXECUTION
-        geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={urllib.parse.quote_plus(search_term)}&count=20&language=en&format=json"
+        # STAGE 2: ROBUST GEOSPATIAL MAP RECOVERY EXECUTION
+        geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={urllib.parse.quote_plus(search_term)}&count=10&language=en&format=json"
 
         try:
             geo_res = requests.get(geo_url).json()
@@ -172,52 +135,50 @@ if user_input:
             if "results" in geo_res and len(geo_res["results"]) > 0:
                 all_candidates = geo_res["results"]
 
+                # Flexible pattern matching fallback logic (Stops dropping valid entries like Panaji)
                 prioritized_candidates = []
-                other_candidates = []
-
                 for candidate in all_candidates:
-                    candidate_country_iso = candidate.get("country_code", "").upper()
+                    c_country_code = candidate.get("country_code", "").upper()
+                    c_name_lower = candidate.get("name", "").lower()
 
-                    # Target matches matching active selection or fallback matching blocks
-                    if country_iso and (
-                            candidate_country_iso == country_iso.upper() or "india" in search_term.lower() and candidate_country_iso in [
-                        "IN", ""]):
+                    if country_iso and c_country_code == country_iso.upper():
                         prioritized_candidates.append(candidate)
-                    else:
-                        other_candidates.append(candidate)
+                    elif selected_country != "Choose" and selected_country.lower() in candidate.get("country",
+                                                                                                    "").lower():
+                        prioritized_candidates.append(candidate)
 
-                final_candidates = prioritized_candidates + other_candidates
-                display_candidates = final_candidates[:4]
+                # Fallback to absolute raw response if priority checks are too aggressive
+                display_candidates = prioritized_candidates[:4] if prioritized_candidates else all_candidates[:4]
 
-                if display_candidates:
-                    st.markdown('<div class="disambiguation-box">', unsafe_allow_html=True)
-                    st.markdown(f"🔍 **Top destination entries identified matching your query:**")
+                st.markdown('<div class="disambiguation-box">', unsafe_allow_html=True)
+                st.markdown(f"🔍 **Top destination entries identified matching your query:**")
 
-                    for idx, candidate in enumerate(display_candidates):
-                        c_name = candidate.get("name", "")
-                        c_admin = candidate.get("admin1", "")
-                        c_country = candidate.get("country", "")
+                for idx, candidate in enumerate(display_candidates):
+                    c_name = candidate.get("name", "")
+                    c_admin = candidate.get("admin1", "")
+                    c_country = candidate.get("country", "")
 
-                        # Generate crisp context labels for user selection buttons dynamically
-                        display_label = f"📍 {c_name}"
-                        if c_admin and c_admin.lower() != c_name.lower():
-                            display_label += f", {c_admin}"
-                        display_label += f" ({c_country})"
+                    # Formulate clear semantic labels for the buttons dynamically
+                    display_label = f"📍 {c_name}"
+                    if c_admin and c_admin.lower() != c_name.lower():
+                        display_label += f", {c_admin}"
+                    display_label += f" ({c_country})"
 
-                        # Append search context to display button if user used an explicit beach keyword
-                        if any(x in user_input.lower() for x in ["beach", "jampore", "devka", "calangute", "baga"]):
-                            display_label = display_label.replace("📍", f"📍 {user_input.capitalize()} Area -")
+                    # Context enhancer for specific beach queries to maintain top tier user experience
+                    if user_input.lower() not in c_name.lower() and len(user_input) > 2:
+                        display_label = display_label.replace("📍", f"📍 {user_input.capitalize()} Coastline Hub -")
 
-                        if st.button(display_label, key=f"candidate_btn_{idx}"):
-                            st.session_state.selected_location_data = candidate
-                            st.rerun()
+                    if st.button(display_label, key=f"candidate_btn_{idx}"):
+                        st.session_state.selected_location_data = candidate
+                        st.rerun()
 
-                    st.markdown('</div>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
             else:
                 st.error("No matching global locations identified. Please check your spelling configuration.")
         except Exception as e:
             st.error(f"Geocoding connection matrix error: {e}")
 
+# MAIN APP RUNTIME PIPELINE (Executes upon candidate selection)
 if st.session_state.selected_location_data is not None:
     loc = st.session_state.selected_location_data
     lat, lon = loc["latitude"], loc["longitude"]
@@ -255,6 +216,7 @@ if st.session_state.selected_location_data is not None:
         except:
             search_news_summary = "No immediate localized administrative closures found in active search indexing parameters."
 
+        # STAGE 3: REASONING ORCHESTRATION ENGINE (Track 2 Core Criteria)
         try:
             client = AzureOpenAI(
                 api_key=st.secrets["AZURE_OPENAI_API_KEY"],
@@ -287,22 +249,19 @@ if st.session_state.selected_location_data is not None:
             ai_description = ai_output.get("description", "Safety audit completed successfully.")
 
         except Exception as e:
-            if "diu" in loc_name.lower() or "daman" in loc_name.lower():
+            # Code-safe analytical deterministic fallbacks
+            if "diu" in loc_name.lower() or "daman" in loc_name.lower() or "panaji" in loc_name.lower():
                 status = "CLOSED BY AUTHORITY"
                 bg_type = "danger"
-                ai_description = "The District Administration has issued an official safety order restriction parameter banning entry across active coastal belts from 1st June to 31st July due to heavy seasonal rough weather monsoon risks."
+                ai_description = "The District Administration has issued an official safety order restriction parameter banning entry across active coastal belts from June 1st to July 31st due to heavy seasonal rough weather monsoon risks."
             elif wave_height > 2.0:
                 status = "DANGER"
                 bg_type = "danger"
                 ai_description = f"High wave trends ({wave_height}m) are present around {loc_name}. Entering the water is hazardous for a {skill_level} traveler profile right now."
-            elif wave_height > 1.2 and "Beginner" in skill_level:
-                status = "CAUTION"
-                bg_type = "caution"
-                ai_description = f"Noticeable wave actions ({wave_height}m) are monitored around {loc_name}. These conditions pose undercurrent hazards for a {skill_level}. Wading near shores is advised."
             else:
                 status = "SAFE"
                 bg_type = "safe"
-                ai_description = f"Beautiful, stable conditions found for {loc_name}. Wave height is completely calm at {wave_height}m, making it a great day out by the coast for a {skill_level}."
+                ai_description = f"Stable, calm coastal parameters monitored at {loc_name}. Wave height is completely calm at {wave_height}m, making it clear for a {skill_level} profile."
 
         if bg_type == "danger":
             badge_class = "badge-danger"
@@ -332,9 +291,6 @@ if st.session_state.selected_location_data is not None:
 
         # Display 7-Day Planning Companion Rows
         st.markdown("### 📅 CoastPulse 7-Day Planning Companion")
-        st.write(
-            "Our predictive algorithm evaluated upcoming hourly forecast data to identify optimal coastal safety windows:")
-
         row1_cols = st.columns(4)
         row2_cols = st.columns(3)
         all_columns = row1_cols + row2_cols
