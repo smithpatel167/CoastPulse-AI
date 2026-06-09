@@ -126,7 +126,10 @@ if user_input:
         # STRUCTURAL FIX: Inject country context explicitly into text query block to force priority alignment
         search_term = user_input
         if selected_country != "Choose":
-            search_term = f"{user_input}, {selected_country}"
+            # "Beach" word jodenge taaki coordinates hamesha coastal water area ke milein
+            search_term = f"{user_input} Beach, {selected_country}"
+        else:
+            search_term = f"{user_input} Beach"
 
         geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={urllib.parse.quote_plus(search_term)}&count=20&language=en&format=json"
 
@@ -194,11 +197,17 @@ if st.session_state.selected_location_data is not None:
         wave_height = 0.0
         hourly_wave_heights = []
 
-        if "hourly" in marine_res and marine_res["hourly"] and "wave_height" in marine_res["hourly"]:
+        # Check if the coordinates actually hit ocean/marine grid lines
+        if "hourly" in marine_res and marine_res["hourly"] and "wave_height" in marine_res["hourly"] and \
+                marine_res["hourly"]["wave_height"] is not None:
             raw_waves = marine_res["hourly"]["wave_height"]
             hourly_wave_heights = [w if w is not None else 0.0 for w in raw_waves]
             if hourly_wave_heights:
                 wave_height = hourly_wave_heights[0]
+        else:
+            # Agar coordinates inland hain toh fallback smoothly handle karega bina crash huye
+            hourly_wave_heights = [0.0] * 168
+            wave_height = 0.0
 
         search_news_summary = ""
         try:
