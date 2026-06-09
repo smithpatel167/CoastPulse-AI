@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 
 st.set_page_config(page_title="CoastPulse AI", page_icon="🌊", layout="centered")
 
-# Premium Dynamic CSS UI Layout
+# Premium UI/UX Styling
 st.markdown("""
 <style>
     .stApp { background: radial-gradient(circle at top, #e3f2fd 0%, #ffffff 100%); }
@@ -71,7 +71,7 @@ if "selected_location_data" not in st.session_state:
 if "previous_query" not in st.session_state:
     st.session_state.previous_query = ""
 
-# Input UI Elements
+# Input Matrix Panels
 country_col, input_col, profile_col = st.columns([1, 1.5, 1.5])
 with country_col:
     selected_country = st.selectbox("Country Context:", list(GLOBAL_COUNTRIES.keys()))
@@ -86,12 +86,10 @@ if user_input != st.session_state.previous_query:
     st.session_state.previous_query = user_input
 
 if user_input:
-    country_iso = GLOBAL_COUNTRIES[selected_country]
-
     if st.session_state.selected_location_data is None:
         search_term = user_input
 
-        # STAGE 1: PURE AUTONOMOUS AI PRE-ROUTER LAYER (NO IF-ELSE HARDCODING)
+        # STAGE 1: PURE DYNAMIC LLM GEOSPATIAL STRIPPER
         try:
             client = AzureOpenAI(
                 api_key=st.secrets["AZURE_OPENAI_API_KEY"],
@@ -100,21 +98,18 @@ if user_input:
             )
 
             router_prompt = f"""
-            You are the primary geospatial core agent for a global marine telemetry app.
-            The user searched for: "{user_input}" under the country scope: "{selected_country}".
-
-            Your job is to optimize this input dynamically for a city-based geocoding database:
-            1. If it is a broad territory, state, province, or island group (like 'Goa', 'Bali', 'Hawaii', 'Maldives'), return the exact name of its primary coastal administrative city or town hub (e.g., 'Panaji' for Goa, 'Denpasar' for Bali, 'Male' for Maldives).
-            2. If it is an explicit beach name or resort strip (like 'Jampore', 'Devka', 'Baga', 'Kuta Beach'), identify and return the official coastal city, town, or district that contains it (e.g., 'Daman' for Jampore, 'Panaji' for Baga).
-            3. If it is already a standard specific coastal city (like 'Sydney', 'Miami', 'Mumbai'), return it exactly as it is without modifications.
-
-            Output ONLY the raw processed city/town name string. No formatting, no markdown, no quotes, no explanations.
+            You are a geospatial query pre-processor. The user searched for: "{user_input}" under country scope: "{selected_country}".
+            Optimize this string for an entry lookup database:
+            1. If it's a state, island group, or broad territory (like 'Goa', 'Bali', 'Maldives'), output its primary coastal administrative hub city or town (e.g., 'Panaji' for Goa, 'Denpasar' for Bali, 'Male' for Maldives).
+            2. If it's a specific beach or small landmark (like 'Jampore', 'Devka', 'Baga', 'Calangute'), identify and output its official parent town or district territory (e.g., 'Daman' for Jampore/Devka, 'Panaji' for Baga/Calangute).
+            3. If it's already a standard specific coastal city (like 'Sydney', 'Miami', 'Mumbai'), return it exactly as it is.
+            Output ONLY the raw processed city/town name string. No formatting, no markdown, no quotes, no country names, no explanations.
             """
 
             router_response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": router_prompt}],
-                max_tokens=30,
+                max_tokens=25,
                 temperature=0.0
             )
             refined_city = router_response.choices[0].message.content.strip()
@@ -123,27 +118,18 @@ if user_input:
                 search_term = f"{refined_city}, {selected_country}"
             else:
                 search_term = refined_city
-
         except:
             search_term = f"{user_input}, {selected_country}" if selected_country != "Choose" else user_input
 
-        # STAGE 2: RESILIENT GEOCODING PIPELINE
+        # STAGE 2: STABLE RAW GEOLOCATION HIT
         geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={urllib.parse.quote_plus(search_term)}&count=5&language=en&format=json"
 
         try:
             geo_res = requests.get(geo_url).json()
 
             if "results" in geo_res and len(geo_res["results"]) > 0:
-                # Dynamic matching without aggressive drop filters
-                all_candidates = geo_res["results"]
-                prioritized = []
-
-                for candidate in all_candidates:
-                    c_code = candidate.get("country_code", "").upper()
-                    if country_iso and c_code == country_iso.upper():
-                        prioritized.append(candidate)
-
-                display_candidates = prioritized[:4] if prioritized else all_candidates[:4]
+                # Direct feed without aggressive loop filters that cause empty lists
+                display_candidates = geo_res["results"][:4]
 
                 st.markdown('<div class="disambiguation-box">', unsafe_allow_html=True)
                 st.markdown(f"🔍 **Top destination entries identified matching your query:**")
@@ -159,9 +145,8 @@ if user_input:
                     if c_country:
                         display_label += f" ({c_country})"
 
-                    # UI Presentation Context Enhancer
                     if user_input.lower() not in c_name.lower() and len(user_input) > 2:
-                        display_label = f"📍 {user_input.capitalize()} Coastline Sector - {c_name} ({c_country})"
+                        display_label = f"📍 {user_input.capitalize()} Coastline Hub - {c_name} ({c_country})"
 
                     if st.button(display_label, key=f"candidate_btn_{idx}"):
                         st.session_state.selected_location_data = candidate
@@ -172,7 +157,7 @@ if user_input:
         except Exception as e:
             st.error(f"Geocoding connection matrix error: {e}")
 
-# STAGE 3: MARINE TELEMETRY & AGENT INSIGHTS
+# STAGE 3: TELEMETRY EXECUTION BLOCK
 if st.session_state.selected_location_data is not None:
     loc = st.session_state.selected_location_data
     lat, lon = loc["latitude"], loc["longitude"]
@@ -229,7 +214,7 @@ if st.session_state.selected_location_data is not None:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are the primary orchestration engine for CoastPulse AI. Output a valid JSON block containing exactly three keys: 'status' (SAFE, CAUTION, or CLOSED BY AUTHORITY), 'bg_type' (safe, caution, or danger), and 'description' (a smooth 3-sentence safety summary)."
+                        "content": "You are the primary orchestration engine for CoastPulse AI. Output a valid JSON block containing exactly three keys: 'status' (SAFE, CAUTION, or CLOSED BY AUTHORITY), 'bg_type' (safe, caution, or danger), and 'description' (a smooth 3-sentence summary)."
                     },
                     {"role": "user", "content": evaluation_payload}
                 ],
@@ -249,7 +234,7 @@ if st.session_state.selected_location_data is not None:
             else:
                 status = "SAFE"
                 bg_type = "safe"
-                ai_description = f"Stable coastal parameters monitored at {loc_name}. Wave height is completely calm at {wave_height}m, making it clear for a {skill_level} profile."
+                ai_description = f"Stable parameters monitored at {loc_name}. Wave height is completely calm at {wave_height}m, making it clear for a {skill_level} profile."
 
         if bg_type == "danger":
             badge_class = "badge-danger"
