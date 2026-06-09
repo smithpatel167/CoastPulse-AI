@@ -88,75 +88,92 @@ if user_input != st.session_state.previous_query:
 if user_input:
     if st.session_state.selected_location_data is None:
 
-        # STAGE 1: AZURE OPENAI SPELLING & INTENT STABILIZER
-        try:
-            client = AzureOpenAI(
-                api_key=st.secrets["AZURE_OPENAI_API_KEY"],
-                api_version="2024-02-01",
-                azure_endpoint=st.secrets["AZURE_OPENAI_ENDPOINT"]
-            )
+        clean_query = user_input.lower().strip()
+        display_candidates = []
+        is_hybrid_resolved = False
 
-            router_prompt = f"""
-            You are a geospatial query cleaner. The user typed: "{user_input}" inside country context: "{selected_country}".
-            Your only job is to fix any typos, spelling errors, or broad names into a standard city or town name.
-            - If it's 'melborn', output 'Melbourne'.
-            - If it's 'goa', output 'Panaji'.
-            - If it's 'jampore' or 'devka', output 'Daman'.
-            - If it's already a standard city like 'Miami' or 'Sydney', output it exactly as is.
-            Output ONLY the raw corrected name. No punctuation, no markdown, no quotes, no explanations.
-            """
+        # HYBRID ROUTER STAGE 1: HYPER-FAST REGIONAL OVERRIDES (100% CRASH-PROOF)
+        if clean_query == "goa" and (selected_country in ["India", "Choose"]):
+            display_candidates = [
+                {"name": "Panaji Coastal Center (Goa)", "latitude": 15.4909, "longitude": 73.8278, "country": "India",
+                 "admin1": "Goa"},
+                {"name": "Calangute Coastal Hub (Goa)", "latitude": 15.5444, "longitude": 73.7554, "country": "India",
+                 "admin1": "Goa"},
+                {"name": "Baga Beach Shoreline (Goa)", "latitude": 15.5562, "longitude": 73.7517, "country": "India",
+                 "admin1": "Goa"}
+            ]
+            is_hybrid_resolved = True
+        elif "jampore" in clean_query or "devka" in clean_query:
+            target_name = "Jampore Coastal Belt" if "jampore" in clean_query else "Devka Coastal Belt"
+            display_candidates = [
+                {"name": f"{target_name} (Daman)", "latitude": 20.3840, "longitude": 72.8258, "country": "India",
+                 "admin1": "Daman and Diu"}
+            ]
+            is_hybrid_resolved = True
 
-            router_response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[{"role": "user", "content": router_prompt}],
-                max_tokens=20,
-                temperature=0.0
-            )
-            clean_query = router_response.choices[0].message.content.strip()
-        except:
-            clean_query = user_input
+        # HYBRID ROUTER STAGE 2: FALLBACK TO LLM PRE-PROCESSOR FOR DYNAMIC GLOBAL SEARCH
+        if not is_hybrid_resolved:
+            try:
+                client = AzureOpenAI(
+                    api_key=st.secrets["AZURE_OPENAI_API_KEY"],
+                    api_version="2024-02-01",
+                    azure_endpoint=st.secrets["AZURE_OPENAI_ENDPOINT"]
+                )
 
-        # Combine with selected country for strict API localization
-        if selected_country != "Choose" and selected_country.lower() not in clean_query.lower():
-            api_search_string = f"{clean_query}, {selected_country}"
-        else:
-            api_search_string = clean_query
+                router_prompt = f"""
+                You are a geospatial query cleaner. The user typed: "{user_input}" inside country context: "{selected_country}".
+                Your only job is to fix any typos, spelling errors, or broad names into a standard city or town name.
+                - If it's 'melborn', output 'Melbourne'.
+                - If it's already a standard city like 'Miami' or 'Sydney', output it exactly as is.
+                Output ONLY the raw corrected name. No punctuation, no markdown, no quotes, no explanations.
+                """
 
-        # STAGE 2: STABLE OPEN-METEO CALL WITHOUT MESSY METADATA LOOPS
-        geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={urllib.parse.quote_plus(api_search_string)}&count=5&language=en&format=json"
+                router_response = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[{"role": "user", "content": router_prompt}],
+                    max_tokens=20,
+                    temperature=0.0
+                )
+                api_query = router_response.choices[0].message.content.strip()
+            except:
+                api_query = user_input
 
-        try:
-            geo_res = requests.get(geo_url).json()
-
-            if "results" in geo_res and len(geo_res["results"]) > 0:
-                display_candidates = geo_res["results"][:4]
-
-                st.markdown('<div class="disambiguation-box">', unsafe_allow_html=True)
-                st.markdown(f"🔍 **Top destination entries identified matching your query:**")
-
-                for idx, candidate in enumerate(display_candidates):
-                    c_name = candidate.get("name", "Verified Location")
-                    c_admin = candidate.get("admin1", "")
-                    c_country = candidate.get("country", "")
-
-                    display_label = f"📍 {c_name}"
-                    if c_admin and c_admin.lower() != c_name.lower():
-                        display_label += f", {c_admin}"
-                    if c_country:
-                        display_label += f" ({c_country})"
-
-                    # Enhance label presentation context if user typed a known beach token
-                    if any(x in user_input.lower() for x in ["jampore", "devka", "baga", "calangute"]):
-                        display_label = display_label.replace("📍", f"📍 {user_input.capitalize()} Beach Area -")
-
-                    if st.button(display_label, key=f"candidate_btn_{idx}"):
-                        st.session_state.selected_location_data = candidate
-                        st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
+            if selected_country != "Choose" and selected_country.lower() not in api_query.lower():
+                api_search_string = f"{api_query}, {selected_country}"
             else:
-                st.error("No matching global locations identified. Please check your spelling configuration.")
-        except Exception as e:
-            st.error(f"Geocoding connection matrix error: {e}")
+                api_search_string = api_query
+
+            # CALL GLOBAL GEOCODING
+            geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={urllib.parse.quote_plus(api_search_string)}&count=5&language=en&format=json"
+            try:
+                geo_res = requests.get(geo_url).json()
+                if "results" in geo_res and len(geo_res["results"]) > 0:
+                    display_candidates = geo_res["results"][:4]
+            except:
+                pass
+
+        # RENDER CANDIDATE SELECTION PANEL
+        if display_candidates:
+            st.markdown('<div class="disambiguation-box">', unsafe_allow_html=True)
+            st.markdown(f"🔍 **Top destination entries identified matching your query:**")
+
+            for idx, candidate in enumerate(display_candidates):
+                c_name = candidate.get("name", "Verified Location")
+                c_admin = candidate.get("admin1", "")
+                c_country = candidate.get("country", "")
+
+                display_label = f"📍 {c_name}"
+                if c_admin and c_admin.lower() != c_name.lower():
+                    display_label += f", {c_admin}"
+                if c_country:
+                    display_label += f" ({c_country})"
+
+                if st.button(display_label, key=f"candidate_btn_{idx}"):
+                    st.session_state.selected_location_data = candidate
+                    st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.error("No matching global locations identified. Please check your spelling configuration.")
 
 # MAIN RUNTIME MARINE DATAFETCH
 if st.session_state.selected_location_data is not None:
@@ -229,7 +246,7 @@ if st.session_state.selected_location_data is not None:
             ai_description = ai_output.get("description", "Safety audit completed successfully.")
 
         except:
-            if "diu" in loc_name.lower() or "daman" in loc_name.lower() or "panaji" in loc_name.lower():
+            if "diu" in loc_name.lower() or "daman" in loc_name.lower() or "panaji" in loc_name.lower() or "goa" in loc_name.lower():
                 status = "CLOSED BY AUTHORITY"
                 bg_type = "danger"
                 ai_description = "The District Administration has issued an official safety order restriction parameter banning entry across active coastal belts from June 1st to July 31st due to heavy seasonal rough weather monsoon risks."
