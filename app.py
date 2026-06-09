@@ -5,6 +5,7 @@ import streamlit_lottie as st_lottie
 from openai import AzureOpenAI
 import urllib.parse
 from datetime import datetime, timedelta
+import re
 
 st.set_page_config(page_title="CoastPulse AI", page_icon="🌊", layout="centered")
 
@@ -61,7 +62,6 @@ if lottie_json:
 
 st.markdown("---")
 
-# Full Comprehensive ISO World Country Mapping Matrix
 GLOBAL_COUNTRIES = {
     "Choose": "", "India": "IN", "Indonesia": "ID", "Maldives": "MV", "Thailand": "TH",
     "Spain": "ES", "United States": "US", "Australia": "AU", "France": "FR", "Japan": "JP"
@@ -87,12 +87,10 @@ if user_input != st.session_state.previous_query:
     st.session_state.previous_query = user_input
 
 if user_input:
-    country_iso = GLOBAL_COUNTRIES[selected_country]
-
     if st.session_state.selected_location_data is None:
-        search_term = user_input
+        display_candidates = []
 
-        # STAGE 1: PURE DYNAMIC LLM ROUTING ENGINE (NO IF-ELSE HARDCODING)
+        # STAGE 1: AZURE OPENAI INTENT & CONTEXT ENHANCER
         try:
             client = AzureOpenAI(
                 api_key=st.secrets["AZURE_OPENAI_API_KEY"],
@@ -102,83 +100,80 @@ if user_input:
 
             router_prompt = f"""
             You are the core geospatial pre-processor for a global marine safety platform.
-            The user typed this unstructured text location: "{user_input}" inside this selected country context: "{selected_country}".
+            The user typed this unstructured or misspelled location query: "{user_input}" inside this selected country context: "{selected_country}".
 
-            Your mission is to resolve this input into a single geocoding-optimized target city or town name string:
-            1. If the input is a specific beach name, point of interest, or small resort area (like 'Jampore', 'Devka', 'Baga', 'Kuta Beach'), identify and return the official coastal city, town, municipality, or district it sits within (e.g., 'Daman' for Jampore, 'Panaji' for Baga, 'Denpasar' for Kuta Beach).
-            2. If the input is a large state, province, archipelago, or broad territory (like 'Goa', 'Bali', 'Maldives', 'Hawaii'), return the exact name of its primary coastal administrative hub city or town (e.g., 'Panaji' for Goa, 'Denpasar' for Bali, 'Male' for Maldives).
-            3. If the input is already a specific coastal city or major port hub (like 'Sydney', 'Miami', 'Mumbai'), return it exactly as it is without modification.
+            Your job is to clean, correct the spelling, and format this query into the perfect global search string for a commercial map index.
+            1. Fix any fuzzy spellings instantly (e.g., change 'melborn' to 'Melbourne').
+            2. If it is a broad state or region (like 'Goa', 'Bali'), append key coastal targets (e.g., 'Panaji, Goa, India' or 'Calangute Beach, Goa').
+            3. If it is a small beach name, map it directly to its verified coastal town territory (e.g., change 'Jampore' or 'Devka' to 'Daman, India').
 
-            Output ONLY the raw processed city or town name, followed optionally by a comma and the country name for strict query anchoring.
-            Do not include markdown, explanations, introductory phrases, punctuation marks, or quotes.
-            Example Output format: Panaji, India
+            Output ONLY the raw corrected location search string with comma-separated geography targets. No markdown, no quotes, no explanations.
             """
 
             router_response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": router_prompt}],
                 max_tokens=40,
-                temperature=0.0  # Extreme deterministic alignment
+                temperature=0.0
             )
+            ai_refined_query = router_response.choices[0].message.content.strip()
+        except:
+            ai_refined_query = f"{user_input}, {selected_country}" if selected_country != "Choose" else user_input
 
-            search_term = router_response.choices[0].message.content.strip()
-
-        except Exception as router_err:
-            search_term = f"{user_input}, {selected_country}" if selected_country != "Choose" else user_input
-
-        # STAGE 2: ROBUST GEOSPATIAL MAP RECOVERY EXECUTION
-        geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={urllib.parse.quote_plus(search_term)}&count=10&language=en&format=json"
-
+        # STAGE 2: BING ENTERPRISE MAP RESOLUTION ROUTER (AUTOMATIC FUZZY & RECOVERY LAYER)
         try:
-            geo_res = requests.get(geo_url).json()
+            encoded_map_query = urllib.parse.quote_plus(ai_refined_query)
+            bing_map_url = f"https://www.bing.com/maps/api/custom/search?q={encoded_map_query}"
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+            bing_html = requests.get(bing_map_url, headers=headers, timeout=5).text
 
-            if "results" in geo_res and len(geo_res["results"]) > 0:
-                all_candidates = geo_res["results"]
+            # Extract precise lat/long coordinates using dynamic regex pattern discovery from script payloads
+            coords_match = re.search(r"\"point\":\[(-?\d+\.\d+),(-?\d+\.\d+)\]", bing_html)
+            if coords_match:
+                b_lat, b_lon = float(coords_match.group(1)), float(coords_match.group(2))
+                display_candidates.append({
+                    "name": ai_refined_query.split(",")[0].strip().capitalize(),
+                    "admin1": selected_country if selected_country != "Choose" else "Coastal Belt",
+                    "country": selected_country if selected_country != "Choose" else "Global",
+                    "latitude": b_lat, "longitude": b_lon
+                })
+        except:
+            pass
 
-                # Flexible pattern matching fallback logic (Stops dropping valid entries like Panaji)
-                prioritized_candidates = []
-                for candidate in all_candidates:
-                    c_country_code = candidate.get("country_code", "").upper()
-                    c_name_lower = candidate.get("name", "").lower()
+        # FALLBACK: STANDARD OPEN-METEO GRID ENGINE IF INTENT RESOLVER REQUIRES DISAMBIGUATION
+        if not display_candidates:
+            geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={urllib.parse.quote_plus(ai_refined_query)}&count=5&language=en&format=json"
+            try:
+                geo_res = requests.get(geo_url).json()
+                if "results" in geo_res and len(geo_res["results"]) > 0:
+                    display_candidates = geo_res["results"][:4]
+            except:
+                pass
 
-                    if country_iso and c_country_code == country_iso.upper():
-                        prioritized_candidates.append(candidate)
-                    elif selected_country != "Choose" and selected_country.lower() in candidate.get("country",
-                                                                                                    "").lower():
-                        prioritized_candidates.append(candidate)
+        # RENDER LOCATION RESULTS BOX
+        if display_candidates:
+            st.markdown('<div class="disambiguation-box">', unsafe_allow_html=True)
+            st.markdown(f"🔍 **Top destination entries identified matching your query:**")
 
-                # Fallback to absolute raw response if priority checks are too aggressive
-                display_candidates = prioritized_candidates[:4] if prioritized_candidates else all_candidates[:4]
+            for idx, candidate in enumerate(display_candidates):
+                c_name = candidate.get("name", "Verified Destination")
+                c_admin = candidate.get("admin1", "")
+                c_country = candidate.get("country", "")
 
-                st.markdown('<div class="disambiguation-box">', unsafe_allow_html=True)
-                st.markdown(f"🔍 **Top destination entries identified matching your query:**")
-
-                for idx, candidate in enumerate(display_candidates):
-                    c_name = candidate.get("name", "")
-                    c_admin = candidate.get("admin1", "")
-                    c_country = candidate.get("country", "")
-
-                    # Formulate clear semantic labels for the buttons dynamically
-                    display_label = f"📍 {c_name}"
-                    if c_admin and c_admin.lower() != c_name.lower():
-                        display_label += f", {c_admin}"
+                display_label = f"📍 {c_name}"
+                if c_admin and c_admin.lower() != c_name.lower():
+                    display_label += f", {c_admin}"
+                if c_country:
                     display_label += f" ({c_country})"
 
-                    # Context enhancer for specific beach queries to maintain top tier user experience
-                    if user_input.lower() not in c_name.lower() and len(user_input) > 2:
-                        display_label = display_label.replace("📍", f"📍 {user_input.capitalize()} Coastline Hub -")
+                if st.button(display_label, key=f"candidate_btn_{idx}"):
+                    st.session_state.selected_location_data = candidate
+                    st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.error("No matching global locations identified. Please check your spelling configuration.")
 
-                    if st.button(display_label, key=f"candidate_btn_{idx}"):
-                        st.session_state.selected_location_data = candidate
-                        st.rerun()
-
-                st.markdown('</div>', unsafe_allow_html=True)
-            else:
-                st.error("No matching global locations identified. Please check your spelling configuration.")
-        except Exception as e:
-            st.error(f"Geocoding connection matrix error: {e}")
-
-# MAIN APP RUNTIME PIPELINE (Executes upon candidate selection)
+# MAIN APP RUNTIME TELEMETRY ENGINE
 if st.session_state.selected_location_data is not None:
     loc = st.session_state.selected_location_data
     lat, lon = loc["latitude"], loc["longitude"]
@@ -236,7 +231,7 @@ if st.session_state.selected_location_data is not None:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are the primary orchestration engine for CoastPulse AI. Your job is to take raw ocean telemetry and live scraped news data, cross-reference it with the user's swimming experience level, and output a valid JSON block containing exactly three keys: 'status' (must be either SAFE, CAUTION, or CLOSED BY AUTHORITY), 'bg_type' (must be either safe, caution, or danger), and 'description'. For the description, generate a smooth, user-friendly 3-sentence safety overview in natural language. If the news text context indicates an explicit administrative ban or date range closure, you must explicitly cite those calendar dates directly in the safety text card description summary so the user knows exactly when the restriction ends. Do not mention API architectures or system internals."
+                        "content": "You are the primary orchestration engine for CoastPulse AI. Your job is to take raw ocean telemetry and live scraped news data, cross-reference it with the user's swimming experience level, and output a valid JSON block containing exactly three keys: 'status' (must be either SAFE, CAUTION, or CLOSED BY AUTHORITY), 'bg_type' (must be either safe, caution, or danger), and 'description'. For the description, generate a smooth, user-friendly 3-sentence safety overview in natural language. Do not mention API architectures or system internals."
                     },
                     {"role": "user", "content": evaluation_payload}
                 ],
@@ -249,15 +244,10 @@ if st.session_state.selected_location_data is not None:
             ai_description = ai_output.get("description", "Safety audit completed successfully.")
 
         except Exception as e:
-            # Code-safe analytical deterministic fallbacks
             if "diu" in loc_name.lower() or "daman" in loc_name.lower() or "panaji" in loc_name.lower():
                 status = "CLOSED BY AUTHORITY"
                 bg_type = "danger"
                 ai_description = "The District Administration has issued an official safety order restriction parameter banning entry across active coastal belts from June 1st to July 31st due to heavy seasonal rough weather monsoon risks."
-            elif wave_height > 2.0:
-                status = "DANGER"
-                bg_type = "danger"
-                ai_description = f"High wave trends ({wave_height}m) are present around {loc_name}. Entering the water is hazardous for a {skill_level} traveler profile right now."
             else:
                 status = "SAFE"
                 bg_type = "safe"
@@ -296,7 +286,6 @@ if st.session_state.selected_location_data is not None:
         all_columns = row1_cols + row2_cols
 
         base_date = datetime.now()
-
         for day_idx in range(7):
             current_day_date = base_date + timedelta(days=day_idx)
             day_name = current_day_date.strftime("%A")
@@ -320,15 +309,6 @@ if st.session_state.selected_location_data is not None:
                 day_status = "🚫 RISK"
                 card_color = "#c62828"
                 window_time = "All Day Swell"
-            elif avg_day_wave > 1.2:
-                if "Beginner" in skill_level:
-                    day_status = "🟡 CAUTION"
-                    card_color = "#fbc02d"
-                    window_time = "Wade Near Shore"
-                else:
-                    day_status = "🟢 SAFE"
-                    card_color = "#2e7d32"
-                    window_time = "6 AM - 11 AM"
             else:
                 day_status = "🟢 OPTIMAL"
                 card_color = "#0288d1"
