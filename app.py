@@ -134,12 +134,15 @@ if user_input:
             )
 
             router_prompt = f"""
-            The user typed this location: "{user_input}" inside the country selection context: "{selected_country}".
-            Evaluate if this input is a broad region, province, state, island, or country rather than a specific coastal town or beach.
-            If it is broad (like Goa, Bali, Maldives, Hawaii), output a string containing the name of the most famous coastal beach or explicit beach town destination in that territory (e.g., if 'Goa', output 'Calangute Beach, Goa'. If 'Bali', output 'Kuta Beach, Bali').
-            If it is already a specific town, city, or beach (like Sydney, Miami, Phuket), return the user's input exactly as it is without modifying it.
-            Output ONLY the raw processed destination string. Do not include markdown, explanations, or quotes.
-            """
+                        The user typed this location: "{user_input}" inside the country selection context: "{selected_country}".
+
+                        Your job is to optimize this input for a city-based geocoding API:
+                        1. If the input is a specific beach name (like 'Jampore', 'Baga', 'Calangute', 'Kuta'), identify the exact coastal town, city, or district it belongs to (e.g., if 'Jampore', output 'Daman'. If 'Baga' or 'Calangute', output 'Goa'. If 'Kuta', output 'Denpasar, Bali').
+                        2. If the input is a broad territory, state, or island group (like 'Goa', 'Bali', 'Maldives'), identify its primary coastal administrative town or city hub (e.g., if 'Goa', output 'Panaji'. If 'Bali', output 'Denpasar').
+                        3. If the input is already a standard specific coastal city or town (like 'Sydney', 'Miami', 'Phuket', 'Mumbai'), return the user's input exactly as it is without modifying it.
+
+                        Output ONLY the raw processed city/town name string with its higher territory if necessary. Do not include markdown, explanations, or quotes.
+                        """
 
             router_response = client.chat.completions.create(
                 model="gpt-4o-mini",
