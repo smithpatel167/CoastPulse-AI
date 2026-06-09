@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 
 st.set_page_config(page_title="CoastPulse AI", page_icon="🌊", layout="centered")
 
-# Premium UI/UX Styling
+# Premium UI/UX Design System
 st.markdown("""
 <style>
     .stApp { background: radial-gradient(circle at top, #e3f2fd 0%, #ffffff 100%); }
@@ -71,7 +71,7 @@ if "selected_location_data" not in st.session_state:
 if "previous_query" not in st.session_state:
     st.session_state.previous_query = ""
 
-# Input Matrix Panels
+# Layout Input Rows
 country_col, input_col, profile_col = st.columns([1, 1.5, 1.5])
 with country_col:
     selected_country = st.selectbox("Country Context:", list(GLOBAL_COUNTRIES.keys()))
@@ -89,7 +89,7 @@ if user_input:
     if st.session_state.selected_location_data is None:
         search_term = user_input
 
-        # STAGE 1: PURE DYNAMIC LLM GEOSPATIAL STRIPPER
+        # STAGE 1: DYNAMIC GEOSPATIAL INTELLIGENCE AGENT
         try:
             client = AzureOpenAI(
                 api_key=st.secrets["AZURE_OPENAI_API_KEY"],
@@ -98,37 +98,33 @@ if user_input:
             )
 
             router_prompt = f"""
-            You are a geospatial query pre-processor. The user searched for: "{user_input}" under country scope: "{selected_country}".
-            Optimize this string for an entry lookup database:
-            1. If it's a state, island group, or broad territory (like 'Goa', 'Bali', 'Maldives'), output its primary coastal administrative hub city or town (e.g., 'Panaji' for Goa, 'Denpasar' for Bali, 'Male' for Maldives).
-            2. If it's a specific beach or small landmark (like 'Jampore', 'Devka', 'Baga', 'Calangute'), identify and output its official parent town or district territory (e.g., 'Daman' for Jampore/Devka, 'Panaji' for Baga/Calangute).
-            3. If it's already a standard specific coastal city (like 'Sydney', 'Miami', 'Mumbai'), return it exactly as it is.
-            Output ONLY the raw processed city/town name string. No formatting, no markdown, no quotes, no country names, no explanations.
+            You are a geospatial query cleaner. The user searched for: "{user_input}" under country scope: "{selected_country}".
+            Your single job is to return ONLY a specific, valid coastal city or town name string that can be found in a standard global atlas.
+            - If it's a broad state, island group, or province (like 'Goa', 'Bali', 'Maldives'), output its primary coastal capital or hub city (e.g., 'Panaji' for Goa, 'Denpasar' for Bali, 'Male' for Maldives).
+            - If it's an explicit beach name (like 'Jampore', 'Devka', 'Baga', 'Calangute'), output its official matching coastal city or district municipality (e.g., 'Daman' for Jampore/Devka, 'Panaji' for Baga/Calangute).
+            - If it's already a standard coastal city (like 'Sydney', 'Miami', 'Mumbai') or has spelling typos (like 'melborn'), fix it and output the clean city name (e.g., 'Melbourne').
+
+            CRITICAL: Output ONLY the raw city/town name string. Do NOT include commas, country names, markdown, quotes, punctuation, or any introductory phrases.
+            Example Output: Panaji
             """
 
             router_response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": router_prompt}],
-                max_tokens=25,
+                max_tokens=20,
                 temperature=0.0
             )
-            refined_city = router_response.choices[0].message.content.strip()
-
-            if selected_country != "Choose" and selected_country.lower() not in refined_city.lower():
-                search_term = f"{refined_city}, {selected_country}"
-            else:
-                search_term = refined_city
+            search_term = router_response.choices[0].message.content.strip()
         except:
-            search_term = f"{user_input}, {selected_country}" if selected_country != "Choose" else user_input
+            search_term = user_input
 
-        # STAGE 2: STABLE RAW GEOLOCATION HIT
+        # STAGE 2: CLEAN, LOCK-FREE GEOLOCATION DISCOVERY
         geo_url = f"https://geocoding-api.open-meteo.com/v1/search?name={urllib.parse.quote_plus(search_term)}&count=5&language=en&format=json"
 
         try:
             geo_res = requests.get(geo_url).json()
 
             if "results" in geo_res and len(geo_res["results"]) > 0:
-                # Direct feed without aggressive loop filters that cause empty lists
                 display_candidates = geo_res["results"][:4]
 
                 st.markdown('<div class="disambiguation-box">', unsafe_allow_html=True)
@@ -146,7 +142,7 @@ if user_input:
                         display_label += f" ({c_country})"
 
                     if user_input.lower() not in c_name.lower() and len(user_input) > 2:
-                        display_label = f"📍 {user_input.capitalize()} Coastline Hub - {c_name} ({c_country})"
+                        display_label = f"📍 {user_input.capitalize()} Coastline Sector - {c_name} ({c_country})"
 
                     if st.button(display_label, key=f"candidate_btn_{idx}"):
                         st.session_state.selected_location_data = candidate
@@ -157,7 +153,7 @@ if user_input:
         except Exception as e:
             st.error(f"Geocoding connection matrix error: {e}")
 
-# STAGE 3: TELEMETRY EXECUTION BLOCK
+# STAGE 3: TELEMETRY AND ANALYSIS PIPELINE
 if st.session_state.selected_location_data is not None:
     loc = st.session_state.selected_location_data
     lat, lon = loc["latitude"], loc["longitude"]
@@ -214,7 +210,7 @@ if st.session_state.selected_location_data is not None:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are the primary orchestration engine for CoastPulse AI. Output a valid JSON block containing exactly three keys: 'status' (SAFE, CAUTION, or CLOSED BY AUTHORITY), 'bg_type' (safe, caution, or danger), and 'description' (a smooth 3-sentence summary)."
+                        "content": "You are the primary orchestration engine for CoastPulse AI. Output a valid JSON block containing exactly three keys: 'status' (SAFE, CAUTION, or CLOSED BY AUTHORITY), 'bg_type' (safe, caution, or danger), and 'description' (a smooth 3-sentence safety summary)."
                     },
                     {"role": "user", "content": evaluation_payload}
                 ],
