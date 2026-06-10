@@ -179,7 +179,6 @@ skill_level = st.sidebar.selectbox("Your Swimming Level Profile:",
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_spatial_coordinates(query_string, country_name, country_iso):
-    """Parses geographic coordinates and uses RapidFuzz index scoring to favor beaches."""
     nominatim_query = f"{query_string}, {country_name}" if country_name != "Select Country Context" else query_string
     headers = {"User-Agent": "CoastPulseMarineSafetyApp/4.0 (contact@coastpulse.ai)"}
     osm_url = f"https://nominatim.openstreetmap.org/search?q={urllib.parse.quote_plus(nominatim_query)}&format=json&addressdetails=1&limit=5"
@@ -199,11 +198,9 @@ def get_spatial_coordinates(query_string, country_name, country_iso):
             display_name = candidate.get("display_name", "")
             label_title = display_name.split(",")[0].strip()
 
-            # Token matching execution through rapidfuzz algorithms
             fuzzy_ratio = fuzz.token_sort_ratio(query_string.lower(), label_title.lower())
             score += (fuzzy_ratio * 0.35)
 
-            # Primary Coastal Features Priority Boosting
             if c_type in ["beach", "coast", "bay", "sea", "ocean"] or c_class in ["coastline", "natural", "water"]:
                 score += 50
             elif c_type in ["city", "town", "island"]:
@@ -233,10 +230,6 @@ def get_marine_telemetry(lat, lon):
 
 @st.cache_data(ttl=1800, show_spinner=False)
 def fetch_live_coastal_safety_news(loc_name, country_name):
-    """
-    NEWS PROVIDER ABSTRACTED ABSTRACTION LAYER (ChatGPT Structural Feature)
-    Fully operational news abstraction container. Ready to stream Bing Search or Azure AI Search.
-    """
     return [
         {"source": "Local Lifeguard Network",
          "title": f"Active patrol grids confirmed across {loc_name}. Flag positions updated based on real-time tide shifts."},
@@ -351,7 +344,6 @@ if user_input:
         else:
             st.error("Could not trace this coastal location. Try verifying spelling variations or filter parameters.")
 
-    # DRAW COMPREHENSIVE B2C RESULTS INTERFACE CANVAS
     if st.session_state.selected_location_data is not None:
         loc = st.session_state.selected_location_data
         lat, lon = loc["latitude"], loc["longitude"]
@@ -383,7 +375,6 @@ if user_input:
             bg_type = analysis.get("bg_type", "safe")
             ai_desc = analysis.get("description", "")
 
-            # Elegant Aesthetic Layout Images Switcher
             if bg_type == "danger":
                 badge, img = "badge-danger", "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?auto=format&fit=crop&w=1200&q=80"
             elif bg_type == "caution":
@@ -391,7 +382,6 @@ if user_input:
             else:
                 badge, img = "badge-safe", "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80"
 
-            # Clean User Presentation Render Card Block
             st.markdown(f"""
                 <div class="result-card" style="background-image: url('{img}');">
                     <div class="card-overlay"></div>
@@ -410,7 +400,7 @@ if user_input:
             if live_news:
                 st.markdown('<div class="news-section-wrapper">', unsafe_allow_html=True)
                 st.markdown(
-                    "<p style='font-size:14px; font-weight:700; color:#60a5fa; margin-bottom:14px; uppercase; letter-spacing:0.04em;'>📰 Live Local Bulletins & Security Feeds</p>",
+                    "<p style='font-size:14px; font-weight:700; color:#60a5fa; margin-bottom:14px; text-transform: uppercase; letter-spacing:0.04em;'>📰 Live Local Bulletins & Security Feeds</p>",
                     unsafe_allow_html=True)
                 for item in live_news:
                     st.markdown(f"""
@@ -421,7 +411,6 @@ if user_input:
                     """, unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)
 
-            # Elastic Responsive Multi-Column 7-Day Scheduler Framework
             st.markdown(
                 "<br><h3 style='font-size:18px; font-weight:700; letter-spacing:-0.01em; margin-bottom:15px;'>📅 Your 7-Day Smart Trip Planner</h3>",
                 unsafe_allow_html=True)
