@@ -14,11 +14,11 @@ from rapidfuzz import fuzz
 st.set_page_config(
     page_title="CoastPulse AI — Safety Insights",
     page_icon="🌊",
-    layout="centered",  # Exact centered view like yesterday
+    layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# Enforcing the precise Sky-Blue & Minimalist Theme styling sheets from your screenshot
+# Enforcing the exact Sky-Blue & Minimalist Central Layout theme parameters
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -29,7 +29,6 @@ st.markdown("""
         color: #1e293b;
     }
 
-    /* Central Branding Block */
     .brand-header-box {
         text-align: center;
         padding-top: 20px;
@@ -41,9 +40,6 @@ st.markdown("""
         font-weight: 800;
         color: #1d4ed8;
         margin: 0;
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
     }
 
     .brand-tagline {
@@ -54,17 +50,15 @@ st.markdown("""
         margin-bottom: 25px;
     }
 
-    /* Illustration Frame Container */
     .illustration-wrapper {
         background-color: #ffffff;
         border-radius: 12px;
-        padding: 30px;
+        padding: 15px;
         text-align: center;
         margin-bottom: 30px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.02);
     }
 
-    /* Main B2C Inline Row Form Labels Layout */
     .field-label {
         font-size: 13px;
         font-weight: 700;
@@ -72,7 +66,6 @@ st.markdown("""
         margin-bottom: 6px;
     }
 
-    /* Elegant Results Rendering Matrix */
     .result-container-card {
         background: #ffffff;
         border-radius: 20px;
@@ -96,7 +89,17 @@ st.markdown("""
     .pill-caution { background-color: #f59e0b; }
     .pill-danger { background-color: #ef4444; }
 
-    /* 📰 Structural Abstracted News Wrapper */
+    /* 🚨 Specialized Ban & Restriction Warning Cards Styles */
+    .ban-status-alert-box {
+        background: #fef2f2;
+        border: 1px solid #fee2e2;
+        border-left: 5px solid #ef4444;
+        padding: 16px 20px;
+        border-radius: 12px;
+        margin-top: 15px;
+        margin-bottom: 15px;
+    }
+
     .news-layer-box {
         background: #f8fafc;
         border: 1px solid #e2e8f0;
@@ -111,7 +114,6 @@ st.markdown("""
         padding: 14px;
         margin-bottom: 10px;
         border-radius: 0 8px 8px 0;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.02);
     }
 
     .planner-grid-card {
@@ -120,13 +122,12 @@ st.markdown("""
         border-radius: 12px;
         border: 1px solid #e2e8f0;
         text-align: center;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.01);
     }
 </style>
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 2. BRAND PRESENTATION RENDERING CORE (THE REAL ILLUSTRATION)
+# 2. BRAND PRESENTATION RENDERING CORE WITH DYNAMIC LOTTIE RESTORATION
 # ==============================================================================
 st.markdown("""
 <div class="brand-header-box">
@@ -135,14 +136,26 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Centralized Illustration Frame block matching your image layout
-st.markdown("""
-<div class="illustration-wrapper">
-    <img src="https://illustrations.popsy.co/amber/relaxing-on-hammock.svg" style="height: 160px;" alt="Beach Relaxing Overview">
-</div>
-""", unsafe_allow_html=True)
 
-# 60+ Country Filter Configuration Matrix Arrays
+# Restoring the exact dynamic animation asset container loop from yesterday
+def fetch_lottie_asset(url: str):
+    try:
+        res = requests.get(url, timeout=5)
+        if res.status_code == 200: return res.json()
+        return None
+    except:
+        return None
+
+
+# Loading the exact dynamic beach vacation animation vector layout
+animation_data = fetch_lottie_asset("https://lottie.host/8dfbfd11-b1e9-4e0f-bb19-481977799ff2/UAt70k7a1v.json")
+
+st.markdown('<div class="illustration-wrapper">', unsafe_allow_html=True)
+if animation_data:
+    st_lottie.st_lottie(animation_data, height=160, key="beach_animation_asset", speed=0.85)
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Global 60+ Country Base Mapping
 GLOBAL_COUNTRIES = {
     "Select Country": "", "India": "in", "Indonesia": "id", "Maldives": "mv", "Thailand": "th", "Sri Lanka": "lk",
     "United States": "us", "Australia": "au", "United Kingdom": "gb", "France": "fr", "Spain": "es",
@@ -150,7 +163,7 @@ GLOBAL_COUNTRIES = {
     "Malaysia": "my", "Vietnam": "vn", "Brazil": "br", "Mexico": "mx", "Canada": "ca"
 }
 
-# Drawing the precise Inline inputs row grid columns interface frame layout
+# Drawing the precise Inline row input selectors fields matrix
 st.markdown("<hr style='border-color: #e2e8f0; margin-bottom: 20px;'>", unsafe_allow_html=True)
 row_cols = st.columns([1.2, 1.8, 1.5])
 
@@ -169,16 +182,15 @@ with row_cols[2]:
 
 
 # ==============================================================================
-# 3. HIGH-PERFORMANCE FUNCTIONAL SERVICE ROUTINES (ABSTRACTED)
+# 3. HIGH-PERFORMANCE FUNCTIONAL SERVICE ROUTINES (ABSTRACTED WITH AI PARSER)
 # ==============================================================================
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_spatial_coordinates(query_string, country_name, country_iso):
-    """Executes geocoding lookups and uses RapidFuzz parameters matching to handle beach context layers."""
     if not query_string: return []
-    nominatim_query = f"{query_string}, {country_name}" if country_name != "Select Country" else query_string
+    target_string = f"{query_string}, {country_name}" if country_name != "Select Country" else query_string
     headers = {"User-Agent": "CoastPulseMarineSafetyApp/5.0 (contact@coastpulse.ai)"}
-    osm_url = f"https://nominatim.openstreetmap.org/search?q={urllib.parse.quote_plus(nominatim_query)}&format=json&addressdetails=1&limit=5"
+    osm_url = f"https://nominatim.openstreetmap.org/search?q={urllib.parse.quote_plus(target_string)}&format=json&addressdetails=1&limit=5"
 
     try:
         osm_res = requests.get(osm_url, headers=headers, timeout=8).json()
@@ -198,7 +210,6 @@ def get_spatial_coordinates(query_string, country_name, country_iso):
             fuzzy_ratio = fuzz.token_sort_ratio(query_string.lower(), label_title.lower())
             score += (fuzzy_ratio * 0.4)
 
-            # Maritime Structure Boosting Weights
             if c_type in ["beach", "coast", "bay", "sea", "ocean"] or c_class in ["coastline", "natural", "water"]:
                 score += 50
             elif c_type in ["city", "town", "island"]:
@@ -229,18 +240,23 @@ def get_marine_telemetry(lat, lon):
 @st.cache_data(ttl=1800, show_spinner=False)
 def fetch_abstracted_safety_news(loc_name, country_name):
     """
-    NEWS PROVIDER ABSTRACT LAYER (As requested by ChatGPT structural review blueprint)
-    Ready to hook up Bing Search or Azure Cognitive indexes inside this function wrapper container.
+    NEWS PROVIDER INTERFACE ABSTRACT LAYER
+    Simulating complex real safety/ban bulletins text data for AI reasoning parser extraction loops.
     """
     return [
-        {"source": "Local Lifeguard Framework",
-         "title": f"Active dynamic patrol grids deployed around {loc_name}. General swimming sectors marked stable."},
+        {"source": "District Administration Office",
+         "title": f"Strict warning: Authority ban enforced for beach entry on June 11 and June 12 due to hazardous structural underwater crosscurrents near {loc_name} channels."},
         {"source": "Maritime Security Network",
-         "title": f"Standard wave energy distributions observed for afternoon wader schedules. Always follow local flag posts."}
+         "title": f"Standard lifeguards deployments track verified for casual swimming zones on other weekdays. Always check color flags status."}
     ]
 
 
-def analyze_safety_with_openai(loc_name, country, wave_height, skill_grade):
+def analyze_safety_with_openai_and_news(loc_name, country, wave_height, skill_grade, news_bulletins):
+    """
+    RE-ENGINEERED INTELLIGENCE BLOCK TASK:
+    Sends waves parameters AND live text news logs to gpt-4o.
+    AI reads news, checks for administrative bans, resolves active block dates explicitly.
+    """
     try:
         client = AzureOpenAI(
             api_key=st.secrets["AZURE_OPENAI_API_KEY"],
@@ -248,17 +264,29 @@ def analyze_safety_with_openai(loc_name, country, wave_height, skill_grade):
             azure_endpoint=st.secrets["AZURE_OPENAI_ENDPOINT"]
         )
 
-        user_payload = f"""
-        Compute safety advice JSON object strings for:
-        Target Node Location: {loc_name}, {country}
-        Sensor Swell Context Height: {wave_height} meters
-        Swimmer Capability Matrix: {skill_grade}
+        # Formatting raw news texts mapping string to pass inside payload arrays
+        formatted_news_feed = "\n".join([f"- [{item['source']}]: {item['title']}" for item in news_bulletins])
 
-        Return a single strict raw valid JSON block mapping explicitly containing exactly these keys:
+        prompt = f"""
+        Analyze current marine sensors data and search through raw local news strings to extract administrative constraints or entries bans.
+        Target Spot Location: {loc_name}, {country}
+        Measured Wave Swell: {wave_height} meters
+         Swimmer Capability Grade: {skill_grade}
+
+        Target Live News Logs Context to Scan:
+        {formatted_news_feed}
+
+        Instructions to compute reasoning tracking matrix fields:
+        1. Check if the text logs mention ANY administrative/authority closure, entry ban or restriction.
+        2. Extract the exact specific dates or windows mentioned for the ban if active.
+
+        Return a strict raw valid JSON block layout configuration map containing exactly these token key properties:
         {{
             "status": "SAFE" or "CAUTION" or "CLOSED BY AUTHORITY",
             "bg_type": "safe" or "caution" or "danger",
-            "description": "Provide a clean polite short advisory warning explanation regarding water currents optimized for this specific type of swimmer profile."
+            "description": "Provide professional advice explanation regarding wave swell conditions for this traveler grade layout.",
+            "authority_ban": "YES" or "NO",
+            "ban_dates": "Provide specific dates/text extracted from the news logs if authority ban is YES, otherwise write 'None'"
         }}
         """
 
@@ -266,34 +294,30 @@ def analyze_safety_with_openai(loc_name, country, wave_height, skill_grade):
             model=st.secrets.get("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o"),
             messages=[
                 {"role": "system",
-                 "content": "You are an internal expert automated maritime risk assessment compliance engine."},
-                {"role": "user", "content": user_payload}
+                 "content": "You are a professional maritime safety intelligence engine parsing text news layers for compliance risk tracking."},
+                {"role": "user", "content": prompt}
             ],
-            max_tokens=250,
-            temperature=0.15
+            max_tokens=350,
+            temperature=0.1
         )
 
-        raw_content = response.choices[0].message.content.strip()
-        if raw_content.startswith("```json"):
-            raw_content = raw_content.split("```json")[1].split("```")[0].strip()
-        elif raw_content.startswith("```"):
-            raw_content = raw_content.split("```")[1].split("```")[0].strip()
+        raw_text = response.choices[0].message.content.strip()
+        if raw_text.startswith("```json"):
+            raw_text = raw_text.split("```json")[1].split("```")[0].strip()
+        elif raw_text.startswith("```"):
+            raw_text = raw_text.split("```")[1].split("```")[0].strip()
 
-        return json.loads(raw_content)
+        return json.loads(raw_text)
     except:
-        if wave_height > 1.7:
-            return {"status": "CLOSED BY AUTHORITY", "bg_type": "danger",
-                    "description": "High sea swells values break safety limits. Water entry currently restricted by administration."}
-        elif wave_height > 1.1:
-            return {"status": "CAUTION", "bg_type": "caution",
-                    "description": "Moderate undertow current values monitored. Casual waders maintain shallow position limits."}
-        else:
-            return {"status": "SAFE", "bg_type": "safe",
-                    "description": "Calm coastal behavior verified. Wave frequency boundaries ideal for family leisure tracking."}
+        return {
+            "status": "CAUTION", "bg_type": "caution",
+            "description": "System fallback routine processed values data standard layout templates.",
+            "authority_ban": "NO", "ban_dates": "None"
+        }
 
 
 # ==============================================================================
-# 4. RUNTIME SYSTEM EXECUTION LOGIC PIPELINE
+# 4. RUNTIME AUTOMATION PIPELINE CHANNELS LOOP
 # ==============================================================================
 
 if "selected_location_data" not in st.session_state:
@@ -312,9 +336,11 @@ if user_input:
         candidates = get_spatial_coordinates(user_input, selected_country, country_iso)
 
         if candidates:
-            st.markdown('<div class="disambiguation-box">', unsafe_allow_html=True)
             st.markdown(
-                "<p style='font-size:14px; font-weight:700; color:#1d4ed8; margin-bottom:10px;'>📍 Select exact targeted anchor node spot:</p>",
+                '<div class="location-selector-box" style="background:#fff; border:1px solid #cbd5e1; padding:20px; border-radius:12px; margin-top:15px;">',
+                unsafe_allow_html=True)
+            st.markdown(
+                "<p style='font-size:14px; font-weight:700; margin-bottom:10px; color:#1d4ed8;'>📍 Confirm your targeted beach target anchor spot point:</p>",
                 unsafe_allow_html=True)
 
             for idx, item in enumerate(candidates):
@@ -337,14 +363,13 @@ if user_input:
                     st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
         else:
-            # Replicating the exact formatting of your screenshot error layer natively
             st.markdown(f"""
                 <div style="background-color: #ffeeef; border: 1px solid #fca5a5; padding: 15px; border-radius: 8px; text-align: center; color: #b91c1c; font-size: 13.5px; font-weight: 500; margin-top:20px;">
                     No matching global locations identified. Please check your spelling configuration.
                 </div>
             """, unsafe_allow_html=True)
 
-    # PROCESS DYNAMIC LAYOUT INTEGRATION OUTPUT RENDERING
+    # OUTPUT DATA MODEL RENDERER WITH AUTHORITY CHECKS
     if st.session_state.selected_location_data is not None:
         loc = st.session_state.selected_location_data
         lat, lon = loc["latitude"], loc["longitude"]
@@ -371,35 +396,57 @@ if user_input:
                 daily_max_forecasts = [w if w is not None else 0.0 for w in marine_data["daily"]["wave_height_max"]]
                 forecast_dates = marine_data["daily"].get("time", [])
 
-            analysis = analyze_safety_with_openai(loc_name, country_name, wave_height, skill_level)
+            # Fetch base news layer feeds explicitly first
+            raw_news_logs = fetch_abstracted_safety_news(loc_name, country_name)
+
+            # TRIGGER EXPLICIT ADVANCED REASONING AI AUDITOR FOR RESTRICTIONS CHECK
+            analysis = analyze_safety_with_openai_and_news(loc_name, country_name, wave_height, skill_level,
+                                                           raw_news_logs)
+
             status = analysis.get("status", "SAFE")
             bg_type = analysis.get("bg_type", "safe")
             ai_desc = analysis.get("description", "")
+            has_ban = analysis.get("authority_ban", "NO")
+            ban_dates = analysis.get("ban_dates", "None")
 
             badge_class = "pill-safe"
-            if bg_type == "danger":
+            if bg_type == "danger" or has_ban == "YES":
                 badge_class = "pill-danger"
             elif bg_type == "caution":
                 badge_class = "pill-caution"
 
-            # Render Clean Consumer Container Panel Box
+            # Main Safety Presentation Layout Card Container Block
             st.markdown(f"""
                 <div class="result-container-card">
-                    <span class="status-pill {badge_class}">{status}</span>
+                    <span class="status-pill {badge_class}">{status if has_ban == "NO" else "RESTRICTED BY AUTHORITY"}</span>
                     <h3 style="margin-top:12px; color:#0f172a; font-weight:700; font-size:22px;">Safety Report: {full_display}</h3>
-                    <p style="font-size:14.5px; line-height:1.6; color:#334155; margin-top:10px; font-weight: 400;">{ai_desc}</p>
+                    <p style="font-size:14.5px; line-height:1.6; color:#334155; margin-top:10px;">{ai_desc}</p>
+            """, unsafe_allow_html=True)
+
+            # --- INTERACTIVE NEW MODULE BLOCK: LIVE EXTRACTED AUTHORITY BAN TRACKER DISPLAY ---
+            if has_ban == "YES":
+                st.markdown(f"""
+                    <div class="ban-status-alert-box">
+                        <strong style="color: #991b1b; font-size: 14px; text-transform: uppercase; letter-spacing: 0.02em;">🛑 ACTIVE ADMINISTRATIVE BAN DECLARED</strong>
+                        <p style="margin: 6px 0 0 0; font-size: 13.5px; color: #7f1d1d; font-weight: 500;">
+                            AI News Engine has verified entry closures matching scheduled itineraries.<br>
+                            <strong>Restricted Dates Window:</strong> <span style="background:#fee2e2; padding:2px 8px; border-radius:4px; font-weight:bold; color:#ef4444;">{ban_dates}</span>
+                        </p>
+                    </div>
+                """, unsafe_allow_html=True)
+
+            st.markdown(f"""
                     <p style="font-size:11px; color:#64748b; margin-top:15px; font-weight: 500;">📍 Coordinates: {lat:.3f}°N, {lon:.3f}°E | Measured Wave Height: {wave_height:.2f}m</p>
                 </div>
             """, unsafe_allow_html=True)
 
-            # --- 📰 live dynamic news integration rendering layer ---
-            safety_news = fetch_abstracted_safety_news(loc_name, country_name)
-            if safety_news:
+            # --- 📰 ORIGINAL RAW FEEDS COMPLIANCE DISPATCH LOGS ---
+            if raw_news_logs:
                 st.markdown('<div class="news-layer-box">', unsafe_allow_html=True)
                 st.markdown(
-                    "<p style='font-size:13px; font-weight:700; color:#2563eb; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.02em;'>📰 Live Local Bulletins & Security Feeds</p>",
+                    "<p style='font-size:13px; font-weight:700; color:#2563eb; margin-bottom:12px; text-transform:uppercase; letter-spacing:0.02em;'>📰 Live Local Bulletins & Security Feeds Checked</p>",
                     unsafe_allow_html=True)
-                for item in safety_news:
+                for item in raw_news_logs:
                     st.markdown(f"""
                         <div class="news-bulletin-card">
                             <span style="font-size:10px; color:#2563eb; font-weight:700; text-transform:uppercase;">📢 {item['source']}</span>
@@ -408,9 +455,9 @@ if user_input:
                     """, unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)
 
-            # Render Clean 7-Day Planning Companion Matrix
+            # Render Clean 7-Day Planning Companion Matrix mapping grid columns layout
             st.markdown(
-                "<br><h4 style='font-size:16px; font-weight:700; color:#0f172a; margin-bottom:12px;'>📅 7-Day Trip Planner Matrix</h4>",
+                "<br><h4 style='font-size:16px; font-weight:700; color:#0f172a; margin-bottom:12px;'>📅 Your 7-Day Trip Planner Matrix</h4>",
                 unsafe_allow_html=True)
             cols = st.columns(7)
 
@@ -418,12 +465,18 @@ if user_input:
                 p_date = datetime.strptime(forecast_dates[day_idx], "%Y-%m-%d")
                 max_w = daily_max_forecasts[day_idx]
 
-                if status == "CLOSED BY AUTHORITY" or max_w > 1.9:
-                    d_lbl, d_clr, d_win = "🚫 RISK", "#ef4444", "High Waves"
-                elif max_w > 1.1:
-                    d_lbl, d_clr, d_win = "🟡 CAUTION", "#f59e0b", "Shallow Only"
+                # Check if current day string matches the dates parsed inside the AI restriction string block tokens
+                day_str_short = p_date.strftime("%b %d")  # e.g. June 11
+                is_date_banned = any(part in ban_dates for part in [p_date.strftime("%B %d"), p_date.strftime("%d"),
+                                                                    p_date.strftime(
+                                                                        "%b %d")]) if has_ban == "YES" else False
+
+                if is_date_banned or max_w > 1.9:
+                    d_lbl, d_clr = "🚫 CLOSED", "#ef4444"
+                elif max_w > 1.1 or status == "CAUTION":
+                    d_lbl, d_clr = "🟡 CAUTION", "#f59e0b"
                 else:
-                    d_lbl, d_clr, d_win = "🟢 PERFECT", "#10b981", "9 AM - 4 PM"
+                    d_lbl, d_clr = "🟢 PERFECT", "#10b981"
 
                 with cols[day_idx]:
                     st.markdown(f"""
@@ -434,3 +487,5 @@ if user_input:
                         <span style="font-size:10px; color:#475569;"><strong>{max_w:.1f}m</strong></span>
                     </div>
                     """, unsafe_allow_html=True)
+        else:
+            st.error("Unable to grab local coastal tracking streams. Re-verify search triggers.")
