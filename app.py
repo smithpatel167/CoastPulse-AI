@@ -19,7 +19,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Sky-Blue Minimalist Central Layout theme parameters
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -95,7 +94,7 @@ st.markdown("""
         padding: 18px;
         border-radius: 12px;
         margin-top: 15px;
-        margin-bottom: 5px;
+        margin-bottom: 15px;
     }
 
     .planner-grid-card {
@@ -108,7 +107,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Centralized Identity Matrix Layout Rendering
+# Centralized Identity Layout
 st.markdown("""
 <div class="brand-header-box">
     <h1 class="brand-title">🌊 CoastPulse AI</h1>
@@ -116,25 +115,23 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# --- 🎯 PROJECT FOLDER SE DIRECT LOCAL FILE READ LOOP ---
+# --- 🎯 PRODUCTION LOCAL FILE READ ENGINE ---
 st.markdown('<div class="illustration-wrapper">', unsafe_allow_html=True)
-
 animation_filename = "beach_animation.json"
 local_lottie_json = None
 
-# Checking file path cleanly inside system directory context
 if os.path.exists(animation_filename):
     with open(animation_filename, "r", encoding="utf-8") as f:
         local_lottie_json = json.load(f)
 
 if local_lottie_json:
-    st_lottie.st_lottie(local_lottie_json, height=170, key="local_beach_animation", speed=0.85)
+    st_lottie.st_lottie(local_lottie_json, height=170, key="local_beach_animation_core", speed=0.85)
 else:
-    # Safe graphic component placeholder layout if file name mismatch occurs
-    st.error("⚠️ beach_animation.json not traced in root project folder directory.")
+    st.markdown('<img src="https://illustrations.popsy.co/amber/relaxing-on-hammock.svg" style="height:150px;" />',
+                unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
-# Global Country Filter
+# Global Country Mapping
 GLOBAL_COUNTRIES = {
     "Select Country": "", "India": "in", "Indonesia": "id", "Maldives": "mv", "Thailand": "th", "Sri Lanka": "lk",
     "United States": "us", "Australia": "au", "United Kingdom": "gb", "France": "fr", "Spain": "es",
@@ -142,7 +139,6 @@ GLOBAL_COUNTRIES = {
     "Malaysia": "my", "Vietnam": "vn", "Brazil": "br", "Mexico": "mx", "Canada": "ca"
 }
 
-# Drawing Inline Multi-Selectors Row Filters Grid Framework
 st.markdown("<hr style='border-color: #e2e8f0; margin-bottom: 20px;'>", unsafe_allow_html=True)
 row_cols = st.columns([1.2, 1.8, 1.5])
 
@@ -161,7 +157,7 @@ with row_cols[2]:
 
 
 # ==============================================================================
-# 2. SEPARATED ABSTRACT CORE SERVICES PIPELINES
+# 2. CORE PERFORMANCE CHANNELS
 # ==============================================================================
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -218,8 +214,7 @@ def get_marine_telemetry(lat, lon):
 
 def analyze_safety_with_openai_reasoning(loc_name, country, wave_height, skill_grade):
     """
-    Sarkari Monsoon Ban compliance logic injector mapping.
-    Forces gpt-4o code to frame response statements using 1st June to 31st July constraints filters parameters.
+    Enforces absolute string responses strictly formatted without any leakage patterns.
     """
     try:
         client = AzureOpenAI(
@@ -231,23 +226,16 @@ def analyze_safety_with_openai_reasoning(loc_name, country, wave_height, skill_g
         prompt = f"""
         Compute safety metrics structural report parameters for:
         Target Location: {loc_name}, {country}
-        Swell Measurement Sensor Context: {wave_height} meters
+        Swell Measurement: {wave_height} meters
         Swimmer Grade Profile: {skill_grade}
 
-        STRICT COMPLIANCE CONSTRAINT LOGIC TO ENFORCE:
-        Local maritime authorities, emergency administration units, and meteorological centers have clamped an absolute security entry and swimming BAN starting from 1st June running directly up to 31st July due to hazardous, fatal monsoon currents, volatile underwater undertows, and heavy tidal configurations.
+        MANDATORY REQUIREMENT LOGIC:
+        Local administration and coast protection teams have declared an absolute restriction ban for swimming running explicitly from June 1st to July 31st due to volatile monsoon undercurrents and severe swell surges.
 
-        Task Guidelines:
-        - Generate a descriptive natural language text paragraph explicitly highlighting to the traveler that the coastal sector is completely closed from 1st June to 31st July. Describe clearly why monsoon patterns make entry highly restricted.
-        - Mark authority_ban to YES.
-        - Map ban_dates to '1st June - 31st July'.
-
-        Return a single strict valid raw JSON object map containing exactly these token property keys (no backticks, no markdown):
+        Return a strict raw valid JSON block string with exactly these fields (no markdown wrap tags, no backticks, no text outside JSON structure):
         {{
             "status": "CLOSED BY AUTHORITY",
-            "bg_type": "danger",
-            "description": "Provide a thorough user-friendly natural language paragraph explaining the monsoon administration restriction matrix rules.",
-            "authority_ban": "YES",
+            "description": "Provide a thorough user-friendly natural language paragraph explaining the monsoon administration restriction matrix rules and reasons.",
             "ban_dates": "1st June - 31st July"
         }}
         """
@@ -259,8 +247,8 @@ def analyze_safety_with_openai_reasoning(loc_name, country, wave_height, skill_g
                  "content": "You are a professional automated beach risk advisor parsing administrative compliance criteria maps."},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=350,
-            temperature=0.15
+            max_tokens=300,
+            temperature=0.1
         )
 
         raw_content = response.choices[0].message.content.strip()
@@ -272,14 +260,14 @@ def analyze_safety_with_openai_reasoning(loc_name, country, wave_height, skill_g
         return json.loads(raw_content)
     except:
         return {
-            "status": "CLOSED BY AUTHORITY", "bg_type": "danger",
-            "description": "Seasonal monsoon security systems active. Entry and swimming activities banned completely by district administration from 1st June to 31st July due to life-threatening offshore current surges.",
-            "authority_ban": "YES", "ban_dates": "1st June - 31st July"
+            "status": "CLOSED BY AUTHORITY",
+            "description": "Monsoon security frameworks triggered. Swimming entry banned completely by district administration from June 1st to July 31st due to deep crosscurrent risks.",
+            "ban_dates": "1st June - 31st July"
         }
 
 
 # ==============================================================================
-# 3. INTERACTIVE RENDERING AUTOMATION LOOP PIPELINE
+# 3. RUNTIME ANALYSIS LOOP
 # ==============================================================================
 
 if "selected_location_data" not in st.session_state:
@@ -299,24 +287,20 @@ if user_input:
 
         if candidates:
             st.markdown(
-                '<div class="location-selector-box" style="background:#fff; border:1px solid #cbd5e1; padding:20px; border-radius:12px; margin-top:15px;">',
+                '<div style="background:#fff; border:1px solid #cbd5e1; padding:20px; border-radius:12px; margin-top:15px;">',
                 unsafe_allow_html=True)
             st.markdown(
                 "<p style='font-size:14px; font-weight:700; margin-bottom:10px; color:#1d4ed8;'>📍 Confirm your targeted beach target anchor spot point:</p>",
                 unsafe_allow_html=True)
-
             for idx, item in enumerate(candidates):
                 d_name = item.get("display_name", "")
                 addr = item.get("address", {})
-
                 title = d_name.split(",")[0].strip()
                 region = addr.get("state", addr.get("region", addr.get("province", "")))
                 ctx_country = addr.get("country", "")
-
                 label = f"✨ {title}"
                 if region: label += f", {region}"
                 if ctx_country: label += f" ({ctx_country})"
-
                 if st.button(label, key=f"spatial_btn_{idx}", use_container_width=True):
                     st.session_state.selected_location_data = {
                         "name": title, "latitude": float(item["lat"]), "longitude": float(item["lon"]),
@@ -357,33 +341,33 @@ if user_input:
                 daily_max_forecasts = [w if w is not None else 0.0 for w in marine_data["daily"]["wave_height_max"]]
                 forecast_dates = marine_data["daily"].get("time", [])
 
-            # TRIGGER GPT-4O CORE FOR DESCRIPTIVE MONSOON BAN EXTRACTION
+            # RUN COMPLIANCE PARSER
             analysis = analyze_safety_with_openai_reasoning(loc_name, country_name, wave_height, skill_level)
 
             status = analysis.get("status", "CLOSED BY AUTHORITY")
             ai_desc = analysis.get("description", "")
             ban_dates = analysis.get("ban_dates", "1st June - 31st July")
 
-            # Rendering Main Clean Single User Container block (NO FEEDS LIST PRINTED)
+            # --- SAFE HTML PARSING BLOCKS ---
             st.markdown(f"""
                 <div class="result-container-card">
-                    <span class="status-pill pill-danger">CLOSED BY AUTHORITY</span>
+                    <span class="status-pill pill-danger">{status}</span>
                     <h3 style="margin-top:12px; color:#0f172a; font-weight:700; font-size:22px;">Safety Report: {full_display}</h3>
 
                     <div class="ban-status-alert-box">
-                        <strong style="color: #991b1b; font-size: 14px; text-transform: uppercase; letter-spacing: 0.03em;">🛑 OFFICIAL MONSOON ENTRY BAN ACTIVE</strong>
+                        <strong style="color: #991b1b; font-size: 14px; text-transform: uppercase; letter-spacing: 0.03em;">🛑 OFFICIAL ADMINISTRATIVE BAN DECLARED</strong>
                         <p style="margin: 6px 0 0 0; font-size: 13.8px; color: #7f1d1d; font-weight: 500; line-height:1.5;">
                             Safety regulations strictly forbid swimming or shore access across the scheduled vacation slot.<br>
-                            <strong>Administrative Block Window:</strong> <span style="background:#fee2e2; padding:2px 8px; border-radius:4px; font-weight:800; color:#ef4444;">{ban_dates}</span>
+                            <strong>Active Restriction Window:</strong> <span style="background:#fee2e2; padding:2px 8px; border-radius:4px; font-weight:800; color:#ef4444;">{ban_dates}</span>
                         </p>
                     </div>
 
                     <p style="font-size:14.5px; line-height:1.6; color:#334155; margin-top:12px;">{ai_desc}</p>
-                    <p style="font-size:11px; color:#64748b; margin-top:15px; font-weight: 500;">📍 Coordinates: {lat:.3f}°N, {lon:.3f}°E | Measured Wave Swell: {wave_height:.2f}m</p>
+                    <p style="font-size:11px; color:#64748b; margin-top:15px; font-weight: 500;">📍 Coordinates: {lat:.3f}°N, {lon:.3f}°E | Measured Real-Time Swell Height: {wave_height:.2f}m</p>
                 </div>
             """, unsafe_allow_html=True)
 
-            # Auto Enforcing Shut Down Matrix Cards on Weekly Forecast
+            # Enforcing Strict Banned Status on Calendar
             st.markdown(
                 "<br><h4 style='font-size:16px; font-weight:700; color:#0f172a; margin-bottom:12px;'>📅 Your 7-Day Trip Planner Matrix</h4>",
                 unsafe_allow_html=True)
