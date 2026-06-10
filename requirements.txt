@@ -2,3 +2,5 @@ streamlit
 requests
 openai
 streamlit-lottie
+rapidfuzz
+pandas
