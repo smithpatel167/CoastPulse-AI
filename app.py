@@ -19,6 +19,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# Sky-Blue Minimalist Central Layout theme parameters
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -157,7 +158,7 @@ with row_cols[2]:
 
 
 # ==============================================================================
-# 2. CORE PERFORMANCE CHANNELS
+# 2. CORE PERFORMANCE CHANNELS (ZERO MARKDOWN OUTPUT FROM AI)
 # ==============================================================================
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -214,7 +215,7 @@ def get_marine_telemetry(lat, lon):
 
 def analyze_safety_with_openai_reasoning(loc_name, country, wave_height, skill_grade):
     """
-    Enforces absolute string responses strictly formatted without any leakage patterns.
+    STRICT TEXT-ONLY COMPLIANCE: Forces AI to return plain text fields without ANY HTML strings.
     """
     try:
         client = AzureOpenAI(
@@ -224,18 +225,22 @@ def analyze_safety_with_openai_reasoning(loc_name, country, wave_height, skill_g
         )
 
         prompt = f"""
-        Compute safety metrics structural report parameters for:
+        Compute safety metrics parameters for:
         Target Location: {loc_name}, {country}
         Swell Measurement: {wave_height} meters
         Swimmer Grade Profile: {skill_grade}
 
-        MANDATORY REQUIREMENT LOGIC:
-        Local administration and coast protection teams have declared an absolute restriction ban for swimming running explicitly from June 1st to July 31st due to volatile monsoon undercurrents and severe swell surges.
+        MANDATORY REQUIREMENT:
+        Local administration has declared an absolute restriction ban for swimming running explicitly from 1st June to 31st July due to high-risk monsoon tidal configurations.
 
-        Return a strict raw valid JSON block string with exactly these fields (no markdown wrap tags, no backticks, no text outside JSON structure):
+        Instructions:
+        - Return ONLY a clean, polite natural language advisory text paragraph explaining why the beach is closed for this type of swimmer from 1st June to 31st July.
+        - DO NOT include any HTML tags like <div>, <p>, or styling attributes anywhere in your description string. Return pure plain text content only.
+
+        Return a strict raw valid JSON block string with exactly these fields:
         {{
             "status": "CLOSED BY AUTHORITY",
-            "description": "Provide a thorough user-friendly natural language paragraph explaining the monsoon administration restriction matrix rules and reasons.",
+            "description": "Provide a thorough plain-text natural language explanation advising the user tier explicitly about monsoon administration restriction matrix rules.",
             "ban_dates": "1st June - 31st July"
         }}
         """
@@ -244,7 +249,7 @@ def analyze_safety_with_openai_reasoning(loc_name, country, wave_height, skill_g
             model=st.secrets.get("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o"),
             messages=[
                 {"role": "system",
-                 "content": "You are a professional automated beach risk advisor parsing administrative compliance criteria maps."},
+                 "content": "You are a professional automated beach risk advisor returning pure plain text advisory metrics."},
                 {"role": "user", "content": prompt}
             ],
             max_tokens=300,
@@ -261,7 +266,7 @@ def analyze_safety_with_openai_reasoning(loc_name, country, wave_height, skill_g
     except:
         return {
             "status": "CLOSED BY AUTHORITY",
-            "description": "Monsoon security frameworks triggered. Swimming entry banned completely by district administration from June 1st to July 31st due to deep crosscurrent risks.",
+            "description": "Monsoon security frameworks triggered. Swimming entry banned completely by district administration from 1st June to 31st July due to deep crosscurrent risks.",
             "ban_dates": "1st June - 31st July"
         }
 
@@ -348,24 +353,30 @@ if user_input:
             ai_desc = analysis.get("description", "")
             ban_dates = analysis.get("ban_dates", "1st June - 31st July")
 
-            # --- SAFE HTML PARSING BLOCKS ---
+            # --- STRUCTURED MARKDOWN DISPATCH PANEL ---
+            st.markdown('<div class="result-container-card">', unsafe_allow_html=True)
+            st.markdown(f'<span class="status-pill pill-danger">{status}</span>', unsafe_allow_html=True)
+            st.markdown(
+                f'<h3 style="margin-top:12px; color:#0f172a; font-weight:700; font-size:22px;">Safety Report: {full_display}</h3>',
+                unsafe_allow_html=True)
+
+            # Static Safe Local Wrapper Frame for Ban Banner
             st.markdown(f"""
-                <div class="result-container-card">
-                    <span class="status-pill pill-danger">{status}</span>
-                    <h3 style="margin-top:12px; color:#0f172a; font-weight:700; font-size:22px;">Safety Report: {full_display}</h3>
-
-                    <div class="ban-status-alert-box">
-                        <strong style="color: #991b1b; font-size: 14px; text-transform: uppercase; letter-spacing: 0.03em;">🛑 OFFICIAL ADMINISTRATIVE BAN DECLARED</strong>
-                        <p style="margin: 6px 0 0 0; font-size: 13.8px; color: #7f1d1d; font-weight: 500; line-height:1.5;">
-                            Safety regulations strictly forbid swimming or shore access across the scheduled vacation slot.<br>
-                            <strong>Active Restriction Window:</strong> <span style="background:#fee2e2; padding:2px 8px; border-radius:4px; font-weight:800; color:#ef4444;">{ban_dates}</span>
-                        </p>
-                    </div>
-
-                    <p style="font-size:14.5px; line-height:1.6; color:#334155; margin-top:12px;">{ai_desc}</p>
-                    <p style="font-size:11px; color:#64748b; margin-top:15px; font-weight: 500;">📍 Coordinates: {lat:.3f}°N, {lon:.3f}°E | Measured Real-Time Swell Height: {wave_height:.2f}m</p>
+                <div class="ban-status-alert-box">
+                    <strong style="color: #991b1b; font-size: 14px; text-transform: uppercase; letter-spacing: 0.03em;">🛑 OFFICIAL ADMINISTRATIVE BAN DECLARED</strong>
+                    <p style="margin: 6px 0 0 0; font-size: 13.8px; color: #7f1d1d; font-weight: 500; line-height:1.5;">
+                        Safety regulations strictly forbid swimming or shore access across the scheduled vacation slot.<br>
+                        <strong>Active Restriction Window:</strong> <span style="background:#fee2e2; padding:2px 8px; border-radius:4px; font-weight:800; color:#ef4444;">{ban_dates}</span>
+                    </p>
                 </div>
             """, unsafe_allow_html=True)
+
+            # Rendering description and specs safely outside HTML strings to prevent tag leaks
+            st.write(ai_desc)
+            st.markdown(
+                f'<p style="font-size:11px; color:#64748b; margin-top:15px; font-weight: 500;">📍 Coordinates: {lat:.3f}°N, {lon:.3f}°E | Measured Real-Time Swell Height: {wave_height:.2f}m</p>',
+                unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
             # Enforcing Strict Banned Status on Calendar
             st.markdown(
