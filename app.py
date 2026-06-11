@@ -154,6 +154,35 @@ st.markdown("""
         text-align: center;
         box-shadow: 0 1px 3px rgba(0,0,0,0.01);
     }
+
+    .agent-trace-box {
+        background: #0f172a;
+        border: 1px solid #1e3a5f;
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin-top: 18px;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        color: #7dd3fc;
+    }
+
+    .agent-trace-box p {
+        margin: 4px 0;
+        color: #94a3b8;
+    }
+
+    .agent-trace-box span.step {
+        color: #38bdf8;
+        font-weight: 700;
+    }
+
+    .agent-trace-box span.tool {
+        color: #34d399;
+    }
+
+    .agent-trace-box span.result {
+        color: #fbbf24;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -307,69 +336,301 @@ def fetch_marine_telemetry(lat, lon):
         return None
 
 
-def scrape_unfiltered_user_news(raw_user_string):
-    cleaned_input = raw_user_string.lower()
-    if "diu" in cleaned_input:
-        return f"🚨 CRITICAL UPDATE: Strict maritime safety entry ban declared for {raw_user_string} coastal sectors from June 1st to July 31st due to life-threatening seasonal monsoon crosscurrents."
-    elif "devka" in cleaned_input:
-        return f"⚠️ REGULATORY REPORT: {raw_user_string} shoreline is open for sightseers but is fundamentally unsafe/unsuitable for swimming due to its rocky structures. No official administrative entry ban is in effect."
-    else:
-        return f"🌊 LOCAL FEED: Standard weather distributions registered for {raw_user_string}. Lifeguards are operating routine patrols."
+# ==============================================================================
+# TOOL 1 — Real News Fetcher (replaces hardcoded scraper)
+# Calls GNews API with the location name as search query.
+# Falls back gracefully if API key is missing or request fails.
+# ==============================================================================
+@st.cache_data(ttl=900, show_spinner=False)
+def fetch_live_coastal_news(location_name: str) -> dict:
+    """
+    Fetches real news headlines about a coastal location using GNews API.
+    Returns a dict with 'articles' list and 'source' label for transparency.
+    Add GNEWS_API_KEY to your Streamlit secrets to enable live news.
+    Free tier: 100 requests/day — https://gnews.io
+    """
+    gnews_key = st.secrets.get("GNEWS_API_KEY", None)
 
+    if gnews_key:
+        try:
+            query = f"{location_name} beach safety swimming"
+            url = "https://gnews.io/api/v4/search"
+            params = {
+                "q": query,
+                "token": gnews_key,
+                "lang": "en",
+                "max": 5,
+                "sortby": "publishedAt"
+            }
+            response = requests.get(url, params=params, timeout=10)
+            data = response.json()
+            articles = data.get("articles", [])
+            if articles:
+                summaries = []
+                for a in articles[:4]:
+                    title = a.get("title", "")
+                    desc = a.get("description", "")
+                    published = a.get("publishedAt", "")[:10] if a.get("publishedAt") else ""
+                    if title:
+                        summaries.append(f"[{published}] {title}. {desc}")
+                return {
+                    "source": "GNews Live Feed",
+                    "articles": summaries,
+                    "raw_text": " | ".join(summaries)
+                }
+        except Exception:
+            pass
 
-def process_polished_safety_assessment(location, wave_height, swimmer_grade, news_context):
+    # Fallback — Wikipedia / Open data summary via Nominatim display name
+    # Still real data, not hardcoded strings
     try:
-        client = AzureOpenAI(
-            api_key=st.secrets["AZURE_OPENAI_API_KEY"],
-            api_version="2024-02-01",
-            azure_endpoint=st.secrets["AZURE_OPENAI_ENDPOINT"]
-        )
+        wiki_url = "https://en.wikipedia.org/api/rest_v1/page/summary/" + location_name.replace(" ", "_")
+        resp = requests.get(wiki_url, timeout=8)
+        if resp.status_code == 200:
+            extract = resp.json().get("extract", "")
+            if extract:
+                return {
+                    "source": "Wikipedia Summary",
+                    "articles": [extract[:400]],
+                    "raw_text": extract[:400]
+                }
+    except Exception:
+        pass
 
-        prompt_rules = f"""
-        Analyze these beach parameters and compile a polite, clean, easy-to-understand safety advisory paragraph for a tourist.
-        Target Beach: {location}
-        Current Wave Swell Height: {wave_height} meters
-        Traveler Swimming Tier: {swimmer_grade}
+    # Last resort — generic real-time message (no hardcoded safety claims)
+    return {
+        "source": "Default",
+        "articles": [],
+        "raw_text": f"No specific news alerts currently found for {location_name}. Standard coastal conditions apply — verify with local authorities before entering water."
+    }
 
-        DIRECT NEWS LOGS TO EVALUATE:
-        "{news_context}"
 
-        Instructions:
-        1. Read the news carefully. If a strict administrative closure/ban exists (like Diu), set 'status' to 'CLOSED BY AUTHORITY' and 'bg_type' to 'danger'.
-        2. If the news states it is open but terrain makes it unsafe for swimming (like Devka), set 'status' to 'CAUTION' and 'bg_type' to 'caution'.
-        3. Write the 'description' to naturally describe current wave heights ({wave_height} meters) in easy, straightforward human language. Explain why the label applies based on waves and news.
-        4. CRITICAL: Limit the paragraph to a maximum of 3-4 clear sentences.
-        5. DO NOT include any markdown code blocks, backticks, or HTML tags (like <div>, <p>, <span>) anywhere inside your JSON response fields. Return clean text values only.
+# ==============================================================================
+# TOOL 2 — Wave Risk Classifier (called as an agent tool by GPT-4o)
+# ==============================================================================
+def classify_wave_risk(wave_height: float, swimmer_grade: str) -> dict:
+    """
+    Classifies wave risk level based on height and swimmer experience.
+    Returns structured dict consumed by the agent reasoning loop.
+    """
+    if swimmer_grade == "Beginner / Casual Wader":
+        if wave_height > 0.6:
+            risk = "HIGH"
+            advice = "Waves exceeding 0.6m are dangerous for beginners. Wading only at ankle depth."
+        elif wave_height > 0.3:
+            risk = "MODERATE"
+            advice = "Moderate swell for beginners. Stay near shore with a lifeguard present."
+        else:
+            risk = "LOW"
+            advice = "Calm conditions suitable for beginners and casual wading."
+    elif swimmer_grade == "Intermediate Swimmer":
+        if wave_height > 1.2:
+            risk = "HIGH"
+            advice = "Strong swell for intermediate swimmers. Avoid open water."
+        elif wave_height > 0.7:
+            risk = "MODERATE"
+            advice = "Choppy conditions. Swim parallel to shore and watch for rip currents."
+        else:
+            risk = "LOW"
+            advice = "Good conditions for intermediate swimmers."
+    else:  # Advanced / Surfer
+        if wave_height > 2.5:
+            risk = "HIGH"
+            advice = "Extreme swell. Only experienced surfers with safety gear should proceed."
+        elif wave_height > 1.5:
+            risk = "MODERATE"
+            advice = "Good surfing swell. Exercise standard water safety protocols."
+        else:
+            risk = "LOW"
+            advice = "Light swell. Suitable for advanced swimmers and light surfing."
 
-        Return a strict raw valid JSON block string with exactly these keys:
-        {{
-            "status": "SAFE" or "CAUTION" or "CLOSED BY AUTHORITY",
-            "bg_type": "safe" or "caution" or "danger",
-            "description": "Provide a clean conversational 3-4 sentence paragraph that blends wave conditions and news summaries seamlessly for a human reader without any HTML."
-        }}
-        """
+    return {
+        "wave_height_m": wave_height,
+        "swimmer_grade": swimmer_grade,
+        "risk_level": risk,
+        "advice": advice
+    }
+
+
+# ==============================================================================
+# AGENTIC REASONING PIPELINE — GPT-4o with Tool Calling
+# The agent autonomously decides which tools to call and in what order,
+# then synthesizes all results into a final safety assessment.
+# ==============================================================================
+def run_coastal_safety_agent(location: str, wave_height: float, swimmer_grade: str) -> dict:
+    """
+    Agentic reasoning loop using GPT-4o function/tool calling via Azure AI Foundry.
+
+    Agent flow:
+      Step 1 — GPT-4o receives location + wave height, decides which tools to call
+      Step 2 — Tools execute: fetch_live_coastal_news + classify_wave_risk
+      Step 3 — GPT-4o receives all tool results, reasons over them
+      Step 4 — Final structured JSON advisory is returned
+
+    This replaces the old single-shot prompt approach with a genuine
+    multi-step agentic loop where the model drives its own data gathering.
+    """
+
+    client = AzureOpenAI(
+        api_key=st.secrets["AZURE_OPENAI_API_KEY"],
+        api_version="2024-02-01",
+        azure_endpoint=st.secrets["AZURE_OPENAI_ENDPOINT"]
+    )
+
+    deployment = st.secrets.get("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o")
+
+    # --- Define tools available to the agent ---
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "fetch_live_coastal_news",
+                "description": "Fetches real-time news articles and safety reports about a coastal beach location. Use this to check for bans, closures, pollution alerts, or hazard warnings.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "location_name": {
+                            "type": "string",
+                            "description": "The beach or coastal location name to search news for, e.g. 'Diu Beach India'"
+                        }
+                    },
+                    "required": ["location_name"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "classify_wave_risk",
+                "description": "Classifies the swimming risk level based on current wave height and the traveler's experience level. Returns risk category and safety advice.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "wave_height": {
+                            "type": "number",
+                            "description": "Current wave height in meters"
+                        },
+                        "swimmer_grade": {
+                            "type": "string",
+                            "description": "Swimmer experience level: 'Beginner / Casual Wader', 'Intermediate Swimmer', or 'Advanced / Surfer'"
+                        }
+                    },
+                    "required": ["wave_height", "swimmer_grade"]
+                }
+            }
+        }
+    ]
+
+    # Agent trace for UI display
+    agent_trace = []
+
+    system_prompt = """You are CoastPulse AI — a coastal safety reasoning agent deployed on Azure AI Foundry.
+
+Your job: analyze beach safety for travelers by autonomously gathering and reasoning over real-world data.
+
+REASONING PROTOCOL:
+1. Always call BOTH tools: fetch_live_coastal_news AND classify_wave_risk. You need both data points.
+2. After receiving tool results, synthesize them logically:
+   - If news reports an official ban or closure → status must be CLOSED BY AUTHORITY
+   - If news is clear but waves are risky for the swimmer's level → CAUTION
+   - If both news and waves are acceptable → SAFE
+3. Never guess. Base your final answer entirely on tool outputs.
+4. Return ONLY a raw valid JSON object — no markdown, no backticks, no HTML.
+
+Output format:
+{
+  "status": "SAFE" or "CAUTION" or "CLOSED BY AUTHORITY",
+  "bg_type": "safe" or "caution" or "danger",
+  "description": "3-4 sentence human-readable advisory blending wave conditions and news findings.",
+  "ban_detected": true or false,
+  "ban_dates": "date range string or null",
+  "news_source": "source label string"
+}"""
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": f"Analyze beach safety for: {location}\nCurrent wave height: {wave_height}m\nTraveler experience: {swimmer_grade}\n\nGather all necessary data using your tools and produce a final safety advisory."}
+    ]
+
+    agent_trace.append({"step": "INIT", "detail": f"Agent started for: {location} | Waves: {wave_height}m | Level: {swimmer_grade}"})
+
+    # --- Agentic loop: keep running until model stops calling tools ---
+    max_iterations = 5  # safety limit
+    iteration = 0
+
+    while iteration < max_iterations:
+        iteration += 1
 
         response = client.chat.completions.create(
-            model=st.secrets.get("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o"),
-            messages=[
-                {"role": "system",
-                 "content": "You are a professional travel safety assistant that communicates risk metrics in simple human terms via strict JSON without raw tags."},
-                {"role": "user", "content": prompt_rules}
-            ],
-            max_tokens=300,
+            model=deployment,
+            messages=messages,
+            tools=tools,
+            tool_choice="auto",
+            max_tokens=600,
             temperature=0.1
         )
 
-        raw_content = response.choices[0].message.content.strip()
-        if raw_content.startswith("```json"):
-            raw_content = raw_content.split("```json")[1].split("```")[0].strip()
-        elif raw_content.startswith("```"):
-            raw_content = raw_content.split("```")[1].split("```")[0].strip()
+        choice = response.choices[0]
 
-        return json.loads(raw_content)
-    except Exception:
-        return {"status": "CAUTION", "bg_type": "caution",
-                "description": f"Currently tracking wave heights of {wave_height} meters near {location}. Waders are advised to maintain caution along the shorelines."}
+        # If model wants to call tools
+        if choice.finish_reason == "tool_calls":
+            tool_calls = choice.message.tool_calls
+            messages.append(choice.message)  # append assistant message with tool_calls
+
+            for tc in tool_calls:
+                fn_name = tc.function.name
+                fn_args = json.loads(tc.function.arguments)
+                agent_trace.append({"step": f"TOOL CALL #{iteration}", "tool": fn_name, "args": fn_args})
+
+                # Execute the tool locally
+                if fn_name == "fetch_live_coastal_news":
+                    result = fetch_live_coastal_news(fn_args["location_name"])
+                elif fn_name == "classify_wave_risk":
+                    result = classify_wave_risk(fn_args["wave_height"], fn_args["swimmer_grade"])
+                else:
+                    result = {"error": f"Unknown tool: {fn_name}"}
+
+                agent_trace.append({"step": f"TOOL RESULT #{iteration}", "tool": fn_name, "result": str(result)[:200]})
+
+                # Feed tool result back to agent
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tc.id,
+                    "content": json.dumps(result)
+                })
+
+        # If model is done reasoning and gives final answer
+        elif choice.finish_reason == "stop":
+            raw_content = choice.message.content.strip()
+            agent_trace.append({"step": "FINAL ANSWER", "detail": raw_content[:300]})
+
+            # Clean any accidental markdown wrapping
+            if raw_content.startswith("```json"):
+                raw_content = raw_content.split("```json")[1].split("```")[0].strip()
+            elif raw_content.startswith("```"):
+                raw_content = raw_content.split("```")[1].split("```")[0].strip()
+
+            try:
+                parsed = json.loads(raw_content)
+                parsed["_agent_trace"] = agent_trace
+                return parsed
+            except Exception:
+                break
+
+        else:
+            break
+
+    # Fallback if agent loop fails
+    agent_trace.append({"step": "FALLBACK", "detail": "Agent loop ended without final answer"})
+    return {
+        "status": "CAUTION",
+        "bg_type": "caution",
+        "description": f"Wave height of {wave_height}m detected near {location}. Exercise caution and consult local authorities before entering the water.",
+        "ban_detected": False,
+        "ban_dates": None,
+        "news_source": "Fallback",
+        "_agent_trace": agent_trace
+    }
 
 
 # ==============================================================================
@@ -434,41 +695,36 @@ if user_input:
                 daily_max_forecasts = [w if w is not None else 0.0 for w in marine_payload["daily"]["wave_height_max"]]
                 forecast_dates = marine_payload["daily"].get("time", [])
 
-        # Always run AI assessment regardless of marine API result
-        scraped_news_log = scrape_unfiltered_user_news(user_input)
-        polished_output = process_polished_safety_assessment(
-            confirmed_node['display_title'], current_wave_height, skill_level, scraped_news_log
-        )
+        # --- Run agentic safety assessment ---
+        with st.spinner("🤖 Agent reasoning over live data..."):
+            polished_output = run_coastal_safety_agent(
+                confirmed_node['display_title'], current_wave_height, skill_level
+            )
 
-        status = polished_output.get("status", "SAFE")
-        bg_type = polished_output.get("bg_type", "safe")
-        ai_desc = polished_output.get("description", "")
+        status    = polished_output.get("status", "SAFE")
+        bg_type   = polished_output.get("bg_type", "safe")
+        ai_desc   = polished_output.get("description", "")
+        has_ban   = "YES" if polished_output.get("ban_detected", False) else "NO"
+        ban_dates = polished_output.get("ban_dates") or "None"
+        news_src  = polished_output.get("news_source", "")
+        agent_trace = polished_output.get("_agent_trace", [])
 
         # Sanitize any stray tags from AI response
-        for junk in ["```html", "```json", "```", "<div>", "</div>", "<p>", "</p>", "<span>", "</span>",
-                     "ban-alert-inline", "card-prose-text"]:
+        for junk in ["```html", "```json", "```", "<div>", "</div>", "<p>", "</p>", "<span>", "</span>"]:
             ai_desc = ai_desc.replace(junk, "")
         ai_desc = ai_desc.strip()
 
-        if "diu" in user_input.lower():
-            has_ban = "YES"
-            ban_dates = "June 1st to July 31st"
+        if has_ban == "YES" or status == "CLOSED BY AUTHORITY":
             display_status = "CLOSED BY AUTHORITY"
             pill_class = "badge-capsule-danger"
         elif bg_type == "caution" or status == "CAUTION":
-            has_ban = "NO"
-            ban_dates = "None"
             display_status = "CAUTION"
             pill_class = "badge-capsule-caution"
         else:
-            has_ban = "NO"
-            ban_dates = "None"
             display_status = "SAFE"
             pill_class = "badge-capsule-safe"
 
-        # ==============================================================================
-        # CARD RENDERING — background image changes based on risk level
-        # ==============================================================================
+        # Background image based on risk
         if bg_type == "danger":
             bg_img = "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?auto=format&fit=crop&w=1200&q=80"
         elif bg_type == "caution":
@@ -490,6 +746,8 @@ if user_input:
             )
 
         location_title = confirmed_node["display_title"]
+        news_src_html = f'<span style="font-size:10px;color:rgba(241,245,249,0.4);margin-left:8px;">📡 {news_src}</span>' if news_src else ""
+
         card_style = (
             'border-radius:24px;padding:40px;'
             'box-shadow:0 20px 40px rgba(15,23,42,0.16);'
@@ -501,14 +759,31 @@ if user_input:
         card_html = (
             '<div style="' + card_style + '">'
             '<span class="' + pill_class + '">' + display_status + '</span>'
+            + news_src_html +
             '<h3 class="advisory-header-title">Safety Report: ' + location_title + '</h3>'
             + ban_alert_html +
             '<p class="advisory-prose-body">' + ai_desc + '</p>'
-            '<div class="brand-stamp-footer">✨ Powered by CoastPulse AI</div>'
+            '<div class="brand-stamp-footer">✨ Powered by CoastPulse AI · Azure AI Foundry</div>'
             '</div>'
         )
 
         st.markdown(card_html, unsafe_allow_html=True)
+
+        # --- Agent Reasoning Trace (collapsible) ---
+        if agent_trace:
+            with st.expander("🤖 View Agent Reasoning Trace", expanded=False):
+                trace_lines = ""
+                for t in agent_trace:
+                    step = t.get("step", "")
+                    if "TOOL CALL" in step:
+                        trace_lines += f'<p><span class="step">[{step}]</span> → <span class="tool">{t.get("tool","")}</span> args: {t.get("args","")}</p>'
+                    elif "TOOL RESULT" in step:
+                        trace_lines += f'<p><span class="step">[{step}]</span> → <span class="result">{t.get("result","")[:180]}...</span></p>'
+                    elif "FINAL ANSWER" in step:
+                        trace_lines += f'<p><span class="step">[{step}]</span> → {t.get("detail","")[:200]}...</p>'
+                    else:
+                        trace_lines += f'<p><span class="step">[{step}]</span> {t.get("detail","")}</p>'
+                st.markdown(f'<div class="agent-trace-box">{trace_lines}</div>', unsafe_allow_html=True)
 
         # --- 📅 DYNAMIC 7-DAY TRIP PLANNER MATRIX ---
         if daily_max_forecasts:
