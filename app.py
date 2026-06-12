@@ -4,7 +4,6 @@ import json
 import streamlit_lottie as st_lottie
 from openai import AzureOpenAI
 from datetime import datetime
-from rapidfuzz import fuzz
 import os
 import re
 
@@ -28,40 +27,47 @@ st.markdown("""
     }
     .brand-header-box   { text-align: center; padding-top: 20px; margin-bottom: 5px; }
     .brand-title        { font-size: 36px; font-weight: 800; color: #1d4ed8; margin: 0; }
-    .brand-tagline      { font-size: 15px; color: #334155; font-weight: 600; margin-top: 5px; margin-bottom: 25px; }
-    .illustration-wrapper {
-        background-color: #ffffff; border-radius: 12px; padding: 20px;
-        text-align: center; margin-bottom: 30px;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.02);
-    }
-    .field-label        { font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
-    .clean-search-text  { font-size: 14.5px; font-weight: 700; color: #1d4ed8; margin-top: 25px; margin-bottom: 12px; }
-    .beach-count-note   { font-size: 12px; color: #64748b; margin-top: -8px; margin-bottom: 14px; }
+    .brand-tagline      { font-size: 15px; color: #334155; font-weight: 600;
+                          margin-top: 5px; margin-bottom: 25px; }
+    .illustration-wrapper { background-color: #ffffff; border-radius: 12px; padding: 20px;
+                             text-align: center; margin-bottom: 30px;
+                             box-shadow: 0 1px 4px rgba(0,0,0,0.02); }
+    .field-label  { font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
+    .clean-search-text { font-size: 14.5px; font-weight: 700; color: #1d4ed8;
+                         margin-top: 25px; margin-bottom: 12px; }
 
-    /* ── Status pills ── */
-    .badge-ban     { background-color: #7c3aed; color: white; padding: 6px 14px; border-radius: 6px;
-                     font-weight: 800; font-size: 11px; text-transform: uppercase;
-                     letter-spacing: 0.06em; display: inline-block; margin-bottom: 15px; }
-    .badge-caution { background-color: #f59e0b; color: white; padding: 6px 14px; border-radius: 6px;
-                     font-weight: 800; font-size: 11px; text-transform: uppercase;
-                     letter-spacing: 0.06em; display: inline-block; margin-bottom: 15px; }
-    .badge-safe    { background-color: #10b981; color: white; padding: 6px 14px; border-radius: 6px;
-                     font-weight: 800; font-size: 11px; text-transform: uppercase;
-                     letter-spacing: 0.06em; display: inline-block; margin-bottom: 15px; }
+    /* status pills */
+    .badge-ban     { background-color: #7c3aed; color: white; padding: 6px 14px;
+                     border-radius: 6px; font-weight: 800; font-size: 11px;
+                     text-transform: uppercase; letter-spacing: 0.06em;
+                     display: inline-block; margin-bottom: 15px; }
+    .badge-caution { background-color: #f59e0b; color: white; padding: 6px 14px;
+                     border-radius: 6px; font-weight: 800; font-size: 11px;
+                     text-transform: uppercase; letter-spacing: 0.06em;
+                     display: inline-block; margin-bottom: 15px; }
+    .badge-safe    { background-color: #10b981; color: white; padding: 6px 14px;
+                     border-radius: 6px; font-weight: 800; font-size: 11px;
+                     text-transform: uppercase; letter-spacing: 0.06em;
+                     display: inline-block; margin-bottom: 15px; }
+
     .advisory-header-title { color: #ffffff !important; font-weight: 800; font-size: 24px;
                               margin: 0 0 15px 0 !important; letter-spacing: -0.01em; }
     .advisory-prose-body   { font-size: 15.5px; line-height: 1.72; color: #f1f5f9 !important;
                               font-weight: 400; margin-top: 15px; }
-    .ban-box { background: rgba(124,58,237,0.18); border: 1px solid rgba(167,139,250,0.4);
-                border-radius: 10px; padding: 14px 16px; margin: 16px 0; }
-    .ban-box-title { color: #ddd6fe; font-size: 13px; font-weight: 800; text-transform: uppercase; }
-    .ban-box-body  { margin: 6px 0 0 0; font-size: 13.5px; color: #ede9fe; font-weight: 500;
-                     line-height: 1.65; }
-    .brand-stamp-footer { text-align: right; font-size: 11px; color: rgba(241,245,249,0.45) !important;
+    .ban-box       { background: rgba(124,58,237,0.18);
+                     border: 1px solid rgba(167,139,250,0.4);
+                     border-radius: 10px; padding: 14px 16px; margin: 16px 0; }
+    .ban-box-title { color: #ddd6fe; font-size: 13px; font-weight: 800;
+                     text-transform: uppercase; }
+    .ban-box-body  { margin: 6px 0 0 0; font-size: 13.5px; color: #ede9fe;
+                     font-weight: 500; line-height: 1.65; }
+    .brand-stamp-footer { text-align: right; font-size: 11px;
+                          color: rgba(241,245,249,0.45) !important;
                           font-weight: 600; margin-top: 30px; letter-spacing: 0.03em; }
     .planner-grid-card  { background: #ffffff; padding: 14px; border-radius: 12px;
                           border: 1px solid #e2e8f0; text-align: center;
                           box-shadow: 0 1px 3px rgba(0,0,0,0.01); }
+    .agent-step    { font-size: 12px; color: #64748b; padding: 3px 0; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -82,14 +88,14 @@ if local_lottie_json:
     st_lottie.st_lottie(local_lottie_json, height=160, key="coastpulse_lottie", speed=0.85)
 else:
     st.markdown(
-        '<img src="https://illustrations.popsy.co/amber/relaxing-on-hammock.svg" '
-        'style="height:150px;" />',
+        '<img src="https://illustrations.popsy.co/amber/relaxing-on-hammock.svg"'
+        ' style="height:150px;" />',
         unsafe_allow_html=True
     )
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# 2. GLOBAL COASTAL COUNTRIES ATLAS
+# 2. COUNTRIES
 # ==============================================================================
 GLOBAL_COUNTRIES = {
     "Select Country": "",
@@ -134,7 +140,8 @@ GLOBAL_COUNTRIES = {
     "Uruguay": "uy", "Vanuatu": "vu", "Venezuela": "ve", "Vietnam": "vn", "Yemen": "ye",
 }
 
-st.markdown("<hr style='border-color: #e2e8f0; margin-bottom: 20px;'>", unsafe_allow_html=True)
+st.markdown("<hr style='border-color:#e2e8f0;margin-bottom:20px;'>",
+            unsafe_allow_html=True)
 row_cols = st.columns([1.2, 1.8, 1.5])
 with row_cols[0]:
     st.markdown('<p class="field-label">Country:</p>', unsafe_allow_html=True)
@@ -145,7 +152,7 @@ with row_cols[1]:
     st.markdown('<p class="field-label">Location:</p>', unsafe_allow_html=True)
     user_input = st.text_input(
         "Location",
-        placeholder="e.g., goa, bali, diu, phuket, miami",
+        placeholder="e.g., goa, diu, phuket, miami, bali",
         label_visibility="collapsed"
     ).strip()
 with row_cols[2]:
@@ -158,80 +165,40 @@ with row_cols[2]:
 
 
 # ==============================================================================
-# 3. BEACH FINDER
-#
-# Strategy:
-#   PRIMARY  → Overpass API: query OSM for natural=beach nodes/ways/relations
-#              within a bounding box around the searched region. This returns
-#              ONLY actual beaches — zero restaurants, cafes, or hotels.
-#   FALLBACK → Nominatim with strict OSM type filtering (type=beach only).
-#
-# Why two steps:
-#   Nominatim search("goa beach") returns anything with "beach" in its name or
-#   address — cafe, resort, apartment. Overpass queries OSM tags directly so
-#   only features tagged natural=beach are returned.
-#
-# region_coords: we first geocode the user's typed region (e.g. "goa", "diu")
-# to get a bounding box, then query Overpass within that box.
+# 3. BEACH FINDER  (Overpass API → Nominatim fallback)
+#    Returns ONLY actual beaches — zero restaurants, hotels, cafes.
 # ==============================================================================
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def geocode_region(query_text: str, country_iso: str) -> dict | None:
-    """
-    Geocodes the user's typed region name to lat/lon + bounding box.
-    Returns the best non-beach result (the region itself, not a beach feature).
-    """
-    headers = {"User-Agent": "CoastPulseAI/4.0 (contact@coastpulse.ai)"}
-    params  = {
-        "q":              query_text,
-        "format":         "jsonv2",
-        "addressdetails": 1,
-        "limit":          5,
-        "featuretype":    "settlement,country,state,county,city,town,village,island,archipelago",
-    }
+    """Geocode the typed region name to get bounding box for Overpass."""
+    headers = {"User-Agent": "CoastPulseAI/5.0 (contact@coastpulse.ai)"}
+    params  = {"q": query_text, "format": "jsonv2",
+               "addressdetails": 1, "limit": 5}
     if country_iso:
         params["countrycodes"] = country_iso.lower()
-
+    SKIP_TYPES    = {"beach", "coastline", "bay"}
+    SKIP_AMENITY  = {"cafe", "restaurant", "bar", "hotel", "hostel",
+                     "resort", "hospital", "school", "college"}
     try:
-        resp    = requests.get(
-            "https://nominatim.openstreetmap.org/search",
-            params=params, headers=headers, timeout=12
-        )
+        resp    = requests.get("https://nominatim.openstreetmap.org/search",
+                               params=params, headers=headers, timeout=12)
         results = resp.json()
-
-        if not results:
-            # Broader retry
-            params.pop("featuretype", None)
-            resp    = requests.get(
-                "https://nominatim.openstreetmap.org/search",
-                params=params, headers=headers, timeout=12
-            )
-            results = resp.json()
-
         if not results:
             return None
-
-        # Prefer administrative/place results over beach features
-        SKIP_TYPES = {"beach", "coastline"}
-        SKIP_AMENITIES = {
-            "cafe", "restaurant", "bar", "hotel", "hostel", "resort",
-            "hospital", "school", "college", "university",
-        }
         for r in results:
             if r.get("type") in SKIP_TYPES:
                 continue
-            addr = r.get("address", {})
-            if addr.get("amenity", "").lower() in SKIP_AMENITIES:
+            if r.get("address", {}).get("amenity", "").lower() in SKIP_AMENITY:
                 continue
-
-            bb = r.get("boundingbox", [])   # [south, north, west, east]
+            bb   = r.get("boundingbox", [])
+            addr = r.get("address", {})
             return {
-                "lat":          float(r["lat"]),
-                "lon":          float(r["lon"]),
+                "lat": float(r["lat"]), "lon": float(r["lon"]),
                 "display_name": r.get("display_name", ""),
-                "state":        addr.get("state", addr.get("county", "")),
-                "country":      addr.get("country", ""),
-                "boundingbox":  bb,   # strings: [S, N, W, E]
+                "state":   addr.get("state",   addr.get("county", "")),
+                "country": addr.get("country", ""),
+                "boundingbox": bb,
             }
         return None
     except Exception:
@@ -241,14 +208,9 @@ def geocode_region(query_text: str, country_iso: str) -> dict | None:
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_beaches_overpass(south: float, north: float,
                            west: float,  east: float) -> list[dict]:
-    """
-    Queries OpenStreetMap Overpass API for all features tagged natural=beach
-    within the given bounding box. Returns list of beach dicts.
-    No limit — returns every beach OSM knows about in the area.
-    """
-    # Overpass QL: fetch nodes, ways, and relations with natural=beach
+    """Query OSM Overpass for all natural=beach features in bounding box."""
     query = f"""
-[out:json][timeout:25];
+[out:json][timeout:30];
 (
   node["natural"="beach"]({south},{west},{north},{east});
   way["natural"="beach"]({south},{west},{north},{east});
@@ -257,178 +219,118 @@ def fetch_beaches_overpass(south: float, north: float,
 out center tags;
 """
     try:
-        resp = requests.post(
-            "https://overpass-api.de/api/interpreter",
-            data={"data": query},
-            timeout=30,
-            headers={"User-Agent": "CoastPulseAI/4.0 (contact@coastpulse.ai)"},
-        )
-        data     = resp.json()
-        elements = data.get("elements", [])
-
-        beaches = []
-        seen    = set()
+        resp     = requests.post("https://overpass-api.de/api/interpreter",
+                                 data={"data": query}, timeout=35,
+                                 headers={"User-Agent": "CoastPulseAI/5.0"})
+        elements = resp.json().get("elements", [])
+        beaches, seen = [], set()
         for el in elements:
             tags = el.get("tags", {})
             name = tags.get("name") or tags.get("name:en") or ""
             if not name or name.lower() in seen:
                 continue
             seen.add(name.lower())
-
-            # Get coordinates — nodes have lat/lon directly; ways/relations use center
             if el.get("type") == "node":
-                lat = el["lat"]
-                lon = el["lon"]
+                lat, lon = el["lat"], el["lon"]
             else:
-                center = el.get("center", {})
-                lat    = center.get("lat", 0.0)
-                lon    = center.get("lon", 0.0)
-
+                c = el.get("center", {})
+                lat, lon = c.get("lat", 0.0), c.get("lon", 0.0)
             if lat == 0.0 and lon == 0.0:
                 continue
-
             beaches.append({
                 "display_title": name,
-                "lat":           lat,
-                "lon":           lon,
-                "full_address":  f"{name}, {tags.get('addr:city','') or tags.get('addr:state','')}".strip(", "),
-                "state":         tags.get("addr:state", ""),
-                "country":       tags.get("addr:country", ""),
-                "district":      "",
-                "score":         100,   # all Overpass results are genuine beaches
+                "lat": lat, "lon": lon,
+                "full_address": name,
+                "state": tags.get("addr:state", ""),
+                "country": tags.get("addr:country", ""),
             })
-
-        # Sort alphabetically for a clean list
         beaches.sort(key=lambda b: b["display_title"])
         return beaches
-
     except Exception:
         return []
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def nominatim_beach_fallback(query_text: str, country_iso: str) -> list[dict]:
-    """
-    Fallback: Nominatim search restricted to type=beach only.
-    Used when Overpass returns nothing (e.g. bounding box too small or API down).
-    """
-    headers = {"User-Agent": "CoastPulseAI/4.0 (contact@coastpulse.ai)"}
-    params  = {
-        "q":              f"{query_text} beach",
-        "format":         "jsonv2",
-        "addressdetails": 1,
-        "limit":          50,
-    }
+    """Nominatim fallback — strict beach-only filtering."""
+    headers = {"User-Agent": "CoastPulseAI/5.0 (contact@coastpulse.ai)"}
+    params  = {"q": f"{query_text} beach", "format": "jsonv2",
+               "addressdetails": 1, "limit": 50}
     if country_iso:
         params["countrycodes"] = country_iso.lower()
-
-    HARD_EXCLUDE_TYPES    = {"cafe", "restaurant", "bar", "hotel", "hostel", "fast_food",
-                              "airport", "station", "hospital", "school", "college",
-                              "university", "mall", "supermarket", "parking"}
-    HARD_EXCLUDE_CLASSES  = {"amenity", "shop", "office", "building", "highway",
-                              "railway", "aeroway"}
-    ALLOW_TYPES           = {"beach", "coastline", "bay", "cove", "strait"}
-    ALLOW_CLASSES         = {"natural", "water", "waterway"}
-
+    ALLOW_TYPES   = {"beach", "coastline", "bay", "cove"}
+    ALLOW_CLASSES = {"natural", "water"}
+    HARD_EXCL_CLS = {"amenity", "shop", "office", "building",
+                     "highway", "railway", "aeroway"}
     try:
-        resp    = requests.get(
-            "https://nominatim.openstreetmap.org/search",
-            params=params, headers=headers, timeout=12
-        )
+        resp    = requests.get("https://nominatim.openstreetmap.org/search",
+                               params=params, headers=headers, timeout=12)
         results = resp.json()
-
-        beaches = []
-        seen    = set()
+        beaches, seen = [], set()
         for item in results:
-            ent_type  = item.get("type",  "").lower()
-            ent_class = item.get("class", "").lower()
-
-            # Strict include/exclude
-            if ent_type in HARD_EXCLUDE_TYPES or ent_class in HARD_EXCLUDE_CLASSES:
+            et = item.get("type",  "").lower()
+            ec = item.get("class", "").lower()
+            if ec in HARD_EXCL_CLS:
                 continue
-            if ent_type not in ALLOW_TYPES and ent_class not in ALLOW_CLASSES:
-                # Allow only if the word "beach" appears directly in the feature name
-                first_token = item.get("display_name", "").split(",")[0].strip().lower()
-                if "beach" not in first_token and "coast" not in first_token:
+            if et not in ALLOW_TYPES and ec not in ALLOW_CLASSES:
+                first = item.get("display_name", "").split(",")[0].lower()
+                if "beach" not in first and "coast" not in first:
                     continue
-
-            display_name = item.get("display_name", "")
-            first_token  = display_name.split(",")[0].strip()
-            addr         = item.get("address", {})
-
-            key = first_token.lower()
+            dn  = item.get("display_name", "")
+            key = dn.split(",")[0].strip().lower()
             if key in seen:
                 continue
             seen.add(key)
-
+            addr = item.get("address", {})
             beaches.append({
-                "display_title": first_token,
-                "lat":           float(item["lat"]),
-                "lon":           float(item["lon"]),
-                "full_address":  display_name,
-                "state":         addr.get("state", addr.get("county", "")),
-                "country":       addr.get("country", ""),
-                "district":      "",
-                "score":         80,
+                "display_title": dn.split(",")[0].strip(),
+                "lat": float(item["lat"]), "lon": float(item["lon"]),
+                "full_address": dn,
+                "state":   addr.get("state",   addr.get("county", "")),
+                "country": addr.get("country", ""),
             })
-
         beaches.sort(key=lambda b: b["display_title"])
         return beaches
-
     except Exception:
         return []
 
 
-def resolve_beaches_for_region(query_text: str, country_iso: str) -> tuple[list[dict], str]:
+def resolve_beaches_for_region(query_text: str,
+                                country_iso: str) -> tuple[list[dict], str]:
     """
-    Master resolver. Returns (beaches_list, region_name_for_news_search).
-
-    1. Geocode the region to get bounding box
-    2. Query Overpass for all beaches inside that box
-    3. If Overpass finds nothing, fall back to Nominatim beach-only search
-    4. Return the region name (e.g. "Diu" or "Goa") for RSS news queries
+    Returns (beaches, region_name).
+    Primary: Overpass inside geocoded bounding box.
+    Fallback: Nominatim beach-only search.
     """
-    region = geocode_region(query_text, country_iso)
-
-    region_name = query_text.strip().title()  # default: use what user typed
+    region      = geocode_region(query_text, country_iso)
+    region_name = query_text.strip().title()
 
     if region:
-        # Extract a clean region name from geocoding result
-        addr_parts = region["display_name"].split(",")
-        region_name = addr_parts[0].strip() if addr_parts else region_name
-
+        region_name = region["display_name"].split(",")[0].strip()
         bb = region.get("boundingbox", [])
         if len(bb) == 4:
             try:
-                south, north = float(bb[0]), float(bb[1])
-                west,  east  = float(bb[2]), float(bb[3])
-
-                # Expand box slightly for small territories (e.g. Diu is tiny)
-                lat_span = north - south
-                lon_span = east  - west
-                if lat_span < 0.3:
-                    pad    = (0.3 - lat_span) / 2
-                    south -= pad
-                    north += pad
-                if lon_span < 0.3:
-                    pad   = (0.3 - lon_span) / 2
-                    west -= pad
-                    east += pad
-
-                overpass_beaches = fetch_beaches_overpass(south, north, west, east)
-                if overpass_beaches:
-                    # Enrich with region state/country info if missing
-                    for b in overpass_beaches:
-                        if not b["state"]:   b["state"]   = region.get("state",   "")
-                        if not b["country"]: b["country"] = region.get("country", "")
-                    return overpass_beaches, region_name
-
+                s, n, w, e = (float(bb[0]), float(bb[1]),
+                              float(bb[2]), float(bb[3]))
+                # Expand tiny bounding boxes
+                if (n - s) < 0.3:
+                    pad  = (0.3 - (n - s)) / 2
+                    s   -= pad;  n += pad
+                if (e - w) < 0.3:
+                    pad  = (0.3 - (e - w)) / 2
+                    w   -= pad;  e += pad
+                beaches = fetch_beaches_overpass(s, n, w, e)
+                if beaches:
+                    for b in beaches:
+                        if not b["state"]:
+                            b["state"]   = region.get("state",   "")
+                        if not b["country"]:
+                            b["country"] = region.get("country", "")
+                    return beaches, region_name
             except (ValueError, TypeError):
                 pass
 
-    # Fallback to Nominatim beach search
-    fallback = nominatim_beach_fallback(query_text, country_iso)
-    return fallback, region_name
+    return nominatim_beach_fallback(query_text, country_iso), region_name
 
 
 # ==============================================================================
@@ -437,352 +339,589 @@ def resolve_beaches_for_region(query_text: str, country_iso: str) -> tuple[list[
 @st.cache_data(ttl=1800, show_spinner=False)
 def fetch_marine_telemetry(lat: float, lon: float) -> dict | None:
     try:
-        url = (
-            f"https://marine-api.open-meteo.com/v1/marine"
-            f"?latitude={lat}&longitude={lon}"
-            f"&hourly=wave_height&daily=wave_height_max&timezone=auto"
-        )
+        url = (f"https://marine-api.open-meteo.com/v1/marine"
+               f"?latitude={lat}&longitude={lon}"
+               f"&hourly=wave_height&daily=wave_height_max&timezone=auto")
         return requests.get(url, timeout=10).json()
     except Exception:
         return None
 
 
 # ==============================================================================
-# 5. RSS NEWS FETCHER
-#
-# CRITICAL FIX: always searches using the REGION name (e.g. "Diu", "Goa"),
-# NOT the individual beach name (e.g. "Jallandhar Beach").
-# A ban on "Diu" covers all beaches in Diu — the news will say "Diu beaches
-# banned", not "Jallandhar Beach banned".
-# ==============================================================================
-@st.cache_data(ttl=480, show_spinner=False)
-def fetch_rss_headlines(region_name: str) -> list[dict]:
-    """
-    Fetches Google News RSS headlines for the region (not specific beach).
-    Returns up to 25 deduplicated articles covering ban, safety, and conditions.
-    """
-    queries = [
-        f"{region_name} beach swimming ban",
-        f"{region_name} beach closed prohibited entry ban",
-        f"{region_name} sea entry banned monsoon restriction",
-        f"{region_name} beach safety drowning warning",
-        f"{region_name} coastal water sports suspended",
-    ]
-
-    seen    = set()
-    results = []
-
-    for q in queries:
-        try:
-            encoded = requests.utils.quote(q)
-            url     = f"https://news.google.com/rss/search?q={encoded}&hl=en&gl=IN&ceid=IN:en"
-            resp    = requests.get(
-                url, timeout=10,
-                headers={"User-Agent": "Mozilla/5.0 CoastPulseAI/4.0"}
-            )
-            if resp.status_code != 200:
-                continue
-
-            titles    = re.findall(r'<title><!\[CDATA\[(.*?)\]\]></title>',            resp.text)
-            descs     = re.findall(r'<description><!\[CDATA\[(.*?)\]\]></description>', resp.text)
-            pub_dates = re.findall(r'<pubDate>(.*?)</pubDate>',                         resp.text)
-
-            for i, title in enumerate(titles[1:8]):   # skip feed title at [0]
-                title_clean = title.strip()
-                if title_clean in seen:
-                    continue
-                seen.add(title_clean)
-
-                desc_raw   = descs[i] if i < len(descs) else ""
-                desc_clean = re.sub(r'<[^>]+>', ' ', desc_raw)
-                desc_clean = re.sub(r'\s+', ' ', desc_clean).strip()[:350]
-                pub        = pub_dates[i][:25].strip() if i < len(pub_dates) else ""
-
-                results.append({
-                    "title":    title_clean,
-                    "desc":     desc_clean,
-                    "pub_date": pub,
-                })
-        except Exception:
-            continue
-
-    return results[:25]
-
-
-# ==============================================================================
-# 6. WAVE RISK CLASSIFIER
+# 5. WAVE RISK CLASSIFIER
 # ==============================================================================
 def classify_wave_risk(wave_height: float, swimmer_grade: str) -> dict:
     if swimmer_grade == "Beginner / Casual Wader":
         if wave_height > 0.6:
-            risk, advice = "HIGH", f"Waves of {wave_height:.2f}m are hazardous for beginners — ankle-depth wading only."
+            risk, adv = "HIGH",     f"{wave_height:.2f}m waves — hazardous, ankle-depth wading only."
         elif wave_height > 0.3:
-            risk, advice = "MODERATE", f"Waves of {wave_height:.2f}m — stay close to shore, only enter with a lifeguard present."
+            risk, adv = "MODERATE", f"{wave_height:.2f}m waves — stay close to shore with lifeguard."
         else:
-            risk, advice = "LOW", f"Calm waves of {wave_height:.2f}m — suitable conditions for beginners."
+            risk, adv = "LOW",      f"{wave_height:.2f}m waves — calm, suitable for beginners."
     elif swimmer_grade == "Intermediate Swimmer":
         if wave_height > 1.2:
-            risk, advice = "HIGH", f"Waves of {wave_height:.2f}m are too strong for intermediate swimmers — avoid open water."
+            risk, adv = "HIGH",     f"{wave_height:.2f}m — too strong, avoid open water."
         elif wave_height > 0.7:
-            risk, advice = "MODERATE", f"Choppy conditions at {wave_height:.2f}m — watch for rip currents."
+            risk, adv = "MODERATE", f"{wave_height:.2f}m — choppy, watch for rip currents."
         else:
-            risk, advice = "LOW", f"Good conditions at {wave_height:.2f}m for intermediate swimmers."
+            risk, adv = "LOW",      f"{wave_height:.2f}m — good conditions."
     else:
         if wave_height > 2.5:
-            risk, advice = "HIGH", f"Extreme swell at {wave_height:.2f}m — experienced surfers with full safety gear only."
+            risk, adv = "HIGH",     f"{wave_height:.2f}m — extreme swell, full safety gear required."
         elif wave_height > 1.5:
-            risk, advice = "MODERATE", f"Solid surf swell at {wave_height:.2f}m — standard safety protocols apply."
+            risk, adv = "MODERATE", f"{wave_height:.2f}m — solid surf, standard protocols apply."
         else:
-            risk, advice = "LOW", f"Light swell at {wave_height:.2f}m — good conditions for advanced swimmers."
-
+            risk, adv = "LOW",      f"{wave_height:.2f}m — good for advanced swimmers."
     return {"risk_level": risk, "wave_height_m": wave_height,
-            "swimmer_grade": swimmer_grade, "advice": advice}
+            "swimmer_grade": swimmer_grade, "advice": adv}
 
 
 # ==============================================================================
-# 7. GPT-4o REASONING AGENT
+# 6. SEARCH AGENT  (Agent 1)
 #
-# KEY DESIGN DECISIONS:
+# Runs ALL configured providers IN PARALLEL and merges results.
+# More sources = more unique snippets = better ban detection.
 #
-# A) RSS is searched by REGION (e.g. "Diu"), not by individual beach name.
-#    A ban covering "all beaches in Diu" applies to any specific Diu beach.
+#   SerpAPI     (SERPAPI_KEY)               free 100 searches/month
+#               https://serpapi.com
 #
-# B) GPT receives today's date prominently and MUST reason about ban expiry:
-#    - If news says ban runs "June 1 to July 30" and today is August 8 → ban EXPIRED
-#    - GPT must say SAFE or CAUTION based on wave data, not the expired ban
-#    - If ban end date is in the future relative to today → ban ACTIVE
+#   Google CSE  (GOOGLE_CSE_KEY,            free 100 queries/day
+#                GOOGLE_CSE_CX)             https://developers.google.com/custom-search
 #
-# C) GPT writes description for the SPECIFIC SELECTED BEACH, not just the region.
-#    It knows which exact beach was selected (display_title).
+#   RSS         always runs as baseline     no key, lower quality but free
+#
+# With both SerpAPI + CSE configured you get ~50 unique results per search
+# vs ~10 with RSS alone. Duplicates are removed by title deduplication.
+# Snippets are 150-300 chars of real article body text — this is what allows
+# GPT to extract ban dates, authority names, and restriction scope accurately.
 # ==============================================================================
-def run_coastal_safety_agent(
-    display_title: str,   # specific beach selected (e.g. "Jallandhar Beach")
-    full_address:  str,
-    region_name:   str,   # region used for news search (e.g. "Diu")
-    wave_height:   float,
+
+# BAN_TERMS used for deterministic pre-scoring of search results.
+# High-signal results are passed to Agent 2 first so GPT focuses on them.
+BAN_TERMS = [
+    "banned", "ban", "prohibited", "prohibition", "closed", "closure",
+    "restriction", "restricted", "suspended", "suspension", "not allowed",
+    "entry barred", "no entry", "no swimming", "barred", "forbidden",
+    "collector order", "administration order", "district order",
+    "municipal order", "government order", "authority order",
+]
+
+@st.cache_data(ttl=480, show_spinner=False)
+def agent1_search(region_name: str) -> dict:
+    """
+    Agent 1 — Search Agent.
+    Runs ALL configured providers and merges their results.
+    Deduplicates by title so the same article isn't seen twice.
+    Returns combined schema: {results, ban_hits, total_found, queries_used, providers_used}
+    """
+    serpapi_key = st.secrets.get("SERPAPI_KEY", "")
+    gcse_key    = st.secrets.get("GOOGLE_CSE_KEY", "")
+    gcse_cx     = st.secrets.get("GOOGLE_CSE_CX",  "")
+
+    all_raw      = []   # raw {title, snippet, url} from every provider
+    providers_used = []
+
+    # ── SerpAPI ───────────────────────────────────────────────────────────────
+    if serpapi_key:
+        serp_raw = _raw_serpapi(region_name, serpapi_key)
+        all_raw.extend(serp_raw)
+        providers_used.append(f"SerpAPI ({len(serp_raw)} results)")
+
+    # ── Google CSE ────────────────────────────────────────────────────────────
+    if gcse_key and gcse_cx:
+        cse_raw = _raw_google_cse(region_name, gcse_key, gcse_cx)
+        all_raw.extend(cse_raw)
+        providers_used.append(f"Google CSE ({len(cse_raw)} results)")
+
+    # ── RSS baseline (always runs — free, supplements paid results) ───────────
+    rss_raw = _raw_rss(region_name)
+    all_raw.extend(rss_raw)
+    providers_used.append(f"RSS ({len(rss_raw)} results)")
+
+    result = _build_search_results(all_raw)
+    result["providers_used"] = providers_used
+    return result
+
+
+def _build_search_results(raw_items: list[dict]) -> dict:
+    """Shared scorer/packager used by all search providers."""
+    seen, all_results = set(), []
+    for item in raw_items:
+        title   = item.get("title",   "").strip()
+        snippet = item.get("snippet", "").strip()
+        url     = item.get("url",     "")
+        key     = title.lower()[:80]
+        if not title or key in seen:
+            continue
+        seen.add(key)
+        combined  = (title + " " + snippet).lower()
+        ban_score = sum(1 for t in BAN_TERMS if t in combined)
+        all_results.append({"title": title, "snippet": snippet,
+                             "url": url, "ban_score": ban_score})
+
+    all_results.sort(key=lambda r: r["ban_score"], reverse=True)
+    ban_hits = [r for r in all_results if r["ban_score"] >= 1]
+    return {"results": all_results[:30], "ban_hits": ban_hits[:10],
+            "total_found": len(all_results), "queries_used": []}
+
+
+def _raw_serpapi(region_name: str, api_key: str) -> list[dict]:
+    """
+    SerpAPI — returns raw list of {title, snippet, url}.
+    Free: 100 searches/month. Sign up at https://serpapi.com
+    secrets.toml:  SERPAPI_KEY = "your-key"
+    """
+    queries = [
+        f"{region_name} beach swimming ban",
+        f"{region_name} beach closed prohibited entry",
+        f"{region_name} sea entry banned monsoon restriction",
+        f"{region_name} beach safety drowning warning",
+        f"{region_name} beach water sports suspended",
+    ]
+    raw = []
+    for q in queries:
+        try:
+            resp = requests.get(
+                "https://serpapi.com/search",
+                params={"q": q, "api_key": api_key,
+                        "engine": "google", "num": 10,
+                        "hl": "en", "gl": "in",
+                        "tbs": "qdr:m"},
+                timeout=12,
+            )
+            if resp.status_code != 200:
+                continue
+            for r in resp.json().get("organic_results", []):
+                raw.append({
+                    "title":   r.get("title",   ""),
+                    "snippet": r.get("snippet", ""),
+                    "url":     r.get("link",    ""),
+                })
+        except Exception:
+            continue
+    return raw
+
+
+def _raw_google_cse(region_name: str, api_key: str, cx: str) -> list[dict]:
+    """
+    Google Custom Search Engine — returns raw list of {title, snippet, url}.
+    Free: 100 queries/day. Setup at https://programmablesearchengine.google.com
+    secrets.toml:  GOOGLE_CSE_KEY = "key"  GOOGLE_CSE_CX = "cx-id"
+    """
+    queries = [
+        f"{region_name} beach swimming ban",
+        f"{region_name} beach closed prohibited",
+        f"{region_name} sea entry banned monsoon",
+        f"{region_name} beach safety warning drowning",
+        f"{region_name} beach water sports suspended",
+    ]
+    raw = []
+    for q in queries:
+        try:
+            resp = requests.get(
+                "https://www.googleapis.com/customsearch/v1",
+                params={"q": q, "key": api_key, "cx": cx,
+                        "num": 10, "lr": "lang_en",
+                        "dateRestrict": "m1"},
+                timeout=12,
+            )
+            if resp.status_code != 200:
+                continue
+            for item in resp.json().get("items", []):
+                raw.append({
+                    "title":   item.get("title",   ""),
+                    "snippet": item.get("snippet", ""),
+                    "url":     item.get("link",    ""),
+                })
+        except Exception:
+            continue
+    return raw
+
+
+
+
+# ==============================================================================
+# 7. VERIFICATION + ADVISORY AGENT  (Agent 2)
+#
+# Receives pre-ranked search results from Agent 1.
+# GPT-4o reads the results (title + snippet) and reasons about:
+#   • Is there an active ban? (from snippets, not just titles)
+#   • What are the exact dates? Is the ban active TODAY?
+#   • Who issued it and why?
+# Then writes the final natural-language advisory.
+#
+# Temperature 0 — deterministic date reasoning.
+# ==============================================================================
+def agent2_verify_and_advise(
+    display_title: str,
+    region_name:   str,
+    search_data:   dict,
+    wave_result:   dict,
     swimmer_grade: str,
 ) -> dict:
+    """
+    Agent 2 — Verification + Advisory Agent.
+    Returns the final advisory dict shown to the user.
+    """
+    today_str = datetime.now().strftime("%d %B %Y")
 
-    today_str   = datetime.now().strftime("%d %B %Y")
-    today_dt    = datetime.now()
-    agent_trace = [{"step": "INIT", "beach": display_title,
-                    "region": region_name, "wave_height": wave_height}]
+    # Build search evidence text — prioritise ban hits, then general results
+    ban_hits = search_data.get("ban_hits", [])
+    general  = [r for r in search_data.get("results", [])
+                if r not in ban_hits]
 
-    # Fetch headlines using REGION name
-    headlines   = fetch_rss_headlines(region_name)
-    wave_result = classify_wave_risk(wave_height, swimmer_grade)
+    evidence_lines = []
+    if ban_hits:
+        evidence_lines.append("=== HIGH-RELEVANCE RESULTS (ban/restriction language detected) ===")
+        for r in ban_hits[:8]:
+            evidence_lines.append(f"TITLE:   {r['title']}")
+            evidence_lines.append(f"SNIPPET: {r['snippet']}")
+            evidence_lines.append("")
+    if general[:6]:
+        evidence_lines.append("=== GENERAL SAFETY RESULTS ===")
+        for r in general[:6]:
+            evidence_lines.append(f"TITLE:   {r['title']}")
+            evidence_lines.append(f"SNIPPET: {r['snippet']}")
+            evidence_lines.append("")
 
-    agent_trace.append({"step": "RSS_DONE",  "count": len(headlines), "region": region_name})
-    agent_trace.append({"step": "WAVE_DONE", "risk":  wave_result["risk_level"]})
+    evidence_text = "\n".join(evidence_lines) if evidence_lines else \
+        "No search results available for this region."
 
-    if headlines:
-        headlines_text = "\n".join(
-            f"[{h['pub_date']}] {h['title']}. {h['desc']}"
-            for h in headlines
-        )
-    else:
-        headlines_text = "No relevant news headlines found for this region."
+    client = AzureOpenAI(
+        api_key        = st.secrets["AZURE_OPENAI_API_KEY"],
+        api_version    = "2024-08-01-preview",
+        azure_endpoint = st.secrets["AZURE_OPENAI_ENDPOINT"],
+    )
+    deployment = st.secrets.get("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o")
 
-    try:
-        client = AzureOpenAI(
-            api_key        = st.secrets["AZURE_OPENAI_API_KEY"],
-            api_version    = "2024-08-01-preview",
-            azure_endpoint = st.secrets["AZURE_OPENAI_ENDPOINT"],
-        )
-        deployment = st.secrets.get("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o")
-
-        system_prompt = f"""You are CoastPulse AI — a real-time coastal safety intelligence agent.
+    system_prompt = f"""You are CoastPulse AI — a coastal safety verification and advisory agent.
 
 TODAY'S DATE: {today_str}
-This date is authoritative. You MUST use it when reasoning about whether any ban or restriction is still active.
+This date is authoritative. All date reasoning must use this exact date.
 
-════════════════════════════════════════════════════
-CONTEXT YOU RECEIVE
-════════════════════════════════════════════════════
-1. The specific beach the user selected (e.g. "Jallandhar Beach, Diu")
-2. The region those headlines were searched for (e.g. "Diu")
-3. Live wave height data and risk classification for that exact beach
-4. Recent news headlines about the REGION (because official bans typically cover
-   all beaches in a region, not individual ones)
+You receive:
+1. Web search results (title + snippet) about beach safety for a region
+2. Live wave data for the specific selected beach
+3. The visitor's swimming experience level
 
-════════════════════════════════════════════════════
-STEP 1 — SCAN HEADLINES FOR ACTIVE BANS
-════════════════════════════════════════════════════
+════════════════════════════════════════════
+PHASE 1 — VERIFY BAN FROM SEARCH EVIDENCE
+════════════════════════════════════════════
 
-Read every headline and description carefully. Look for:
-• Official orders: swimming banned/prohibited, beach closed, sea entry banned,
-  no entry, water sports suspended, district collector order, administration order
-• Any authority restricting access to beaches in the region
-• Drowning incidents that triggered closures
+Read every title and snippet carefully. Snippets contain actual article text —
+they often include exact restriction language, dates, authority names.
 
-For each ban signal you find, extract:
-• What the ban covers (swimming, water sports, all sea entry, etc.)
-• The dates: START and END date if mentioned
-• Who issued it (district collector, municipal council, state government, etc.)
-• The reason (monsoon, drowning deaths, rough seas, safety review, etc.)
+Look for evidence of:
+• Official orders banning swimming, sea entry, water sports, beach access
+• District Collector, Municipal Corporation, Administration, Government orders
+• Monsoon restrictions, seasonal bans, post-drowning closures
+• Any official entity restricting public beach access
 
-════════════════════════════════════════════════════
-STEP 2 — CRITICAL: REASON ABOUT BAN DATES vs TODAY
-════════════════════════════════════════════════════
+For each ban signal, extract:
+• ban_scope:  what exactly is banned (e.g. "swimming and water sports", "all sea entry")
+• ban_dates:  start and end dates as written in the snippet
+• ban_by:     issuing authority name
+• ban_reason: stated reason (monsoon, drowning, rough seas, safety review)
 
-Today is {today_str}. This is non-negotiable.
+════════════════════════════════════════════
+PHASE 2 — DATE REASONING (CRITICAL)
+════════════════════════════════════════════
 
-If a ban was found:
-  a) If no end date mentioned → assume ban is CURRENTLY ACTIVE → status = "BAN BY AUTHORITY"
-  b) If end date is IN THE FUTURE relative to today → ban is ACTIVE → status = "BAN BY AUTHORITY"
-  c) If end date has ALREADY PASSED relative to today → ban has EXPIRED
-     → Do NOT set status to BAN BY AUTHORITY
-     → Instead evaluate wave risk and set status to CAUTION or SAFE accordingly
-     → In description, briefly mention the ban has ended and conditions are now X
+Today is {today_str}. This is fixed and authoritative.
 
-EXAMPLE: Today is 12 June 2025. Headlines say ban runs "June 1 to July 30".
-→ July 30 is in the future → ban is ACTIVE → status = "BAN BY AUTHORITY" ✓
+After finding a ban, check its dates:
 
-EXAMPLE: Today is 8 August 2025. Headlines say ban ran "June 1 to July 30".
-→ July 30 has passed → ban EXPIRED → evaluate wave risk → SAFE or CAUTION ✓
+CASE A — No end date mentioned:
+→ Treat ban as CURRENTLY ACTIVE
+→ ban_detected = true, ban_expired = false
 
-EXAMPLE: Today is 15 July 2025. Headlines say ban with no end date.
-→ No end date → treat as ACTIVE → status = "BAN BY AUTHORITY" ✓
+CASE B — End date is IN THE FUTURE (after {today_str}):
+→ Ban is CURRENTLY ACTIVE
+→ ban_detected = true, ban_expired = false
 
-If there is a regional ban covering all beaches (e.g. "all beaches in Diu are banned"),
-it APPLIES to the specific selected beach too, even if that beach isn't named individually.
+CASE C — End date has ALREADY PASSED (before {today_str}):
+→ Ban has EXPIRED — do NOT set ban status
+→ ban_detected = false, ban_expired = true
+→ Fall through to wave risk assessment
+→ Optionally mention the expired ban in description
 
-════════════════════════════════════════════════════
-STEP 3 — WRITE THE DESCRIPTION
-════════════════════════════════════════════════════
+CASE D — No ban evidence found:
+→ ban_detected = false, ban_expired = false
+→ Assess safety purely from wave risk
 
-Write 3–5 warm, clear sentences as if explaining to a friend planning a beach trip.
+Example reasoning:
+Today = {today_str}
+Snippet says: "ban from June 1 to July 30"
+→ Is July 30 before or after {today_str}?
+→ If July 30 is after today → CASE B → ban ACTIVE
+→ If July 30 is before today → CASE C → ban EXPIRED
+
+A regional ban (e.g. "all beaches in Diu banned") applies to the specific
+beach the user selected, even if that beach isn't named individually.
+
+════════════════════════════════════════════
+PHASE 3 — DETERMINE STATUS
+════════════════════════════════════════════
+
+Priority order:
+1. ban_detected = true AND ban_expired = false → status = "BAN BY AUTHORITY"
+2. wave risk = HIGH  → status = "CAUTION"
+3. wave risk = MODERATE → status = "CAUTION"
+4. wave risk = LOW → status = "SAFE"
+
+════════════════════════════════════════════
+PHASE 4 — WRITE DESCRIPTION
+════════════════════════════════════════════
+
+Write 3–5 warm, clear sentences as a knowledgeable friend would explain to
+someone planning a beach trip. Use simple English, no jargon.
 
 For BAN BY AUTHORITY:
-  • Sentence 1: State clearly that the beach/region has an active official ban
-  • Sentence 2: Explain the reason (from news) and who issued the ban
-  • Sentence 3: State the restriction period with actual dates from the news
-  • Sentence 4: Mention the current wave height and what it means
-  • Sentence 5: Safety closing advice
+  S1: State the ban clearly — "[Beach/Region] currently has an official ban on [scope]."
+  S2: State who issued it and the reason.
+  S3: Give the exact restriction period with dates from the search results.
+  S4: Current wave conditions and what they mean for this swimmer.
+  S5: Safety closing statement.
 
-For CAUTION or SAFE:
-  • Sentence 1: Overall condition verdict for this specific beach
-  • Sentence 2: Wave height and what it means for their experience level  
-  • Sentence 3: Practical advice
-  • Sentence 4 (optional): Mention if a ban recently ended or any other context
+For CAUTION:
+  S1: Overall condition — "[Beach] is open but conditions require caution."
+  S2: Wave height and what it means for this swimmer's experience level.
+  S3: Practical safety advice.
+  S4: Any relevant context (e.g. recently expired ban, seasonal pattern).
 
-NEVER include: URLs, website names, domain names, source names, technical terms like
-"ban_score", "RSS", "matched_tokens", or phrases like "according to our data".
+For SAFE:
+  S1: "[Beach] is in good shape for a visit today."
+  S2: Wave conditions and how they suit this swimmer.
+  S3: General sensible safety reminder.
 
-════════════════════════════════════════════════════
-OUTPUT — return ONLY this raw JSON, no markdown fences:
-════════════════════════════════════════════════════
+STRICT RULES — NEVER include in description:
+• URLs or domain names of any kind
+• Source names: "Bing", "Google", "search results", "RSS", "website"
+• Technical terms: "ban_score", "snippet", "API", "agent"
+• Phrases like "according to our data" or "based on search results"
+
+════════════════════════════════════════════
+OUTPUT — raw JSON only, no markdown fences:
+════════════════════════════════════════════
 {{
   "status":       "BAN BY AUTHORITY" | "CAUTION" | "SAFE",
   "bg_type":      "ban" | "caution" | "safe",
   "ban_detected": true | false,
   "ban_expired":  true | false,
-  "ban_reason":   "reason extracted from news" | null,
+  "ban_scope":    "what is banned" | null,
   "ban_dates":    "e.g. 1 June to 30 July 2025" | null,
-  "ban_by":       "authority name from news" | null,
-  "description":  "3-5 warm sentences for the traveller"
+  "ban_by":       "authority name" | null,
+  "ban_reason":   "reason from evidence" | null,
+  "description":  "3–5 warm human sentences"
 }}"""
 
-        user_msg = f"""Beach selected by user: {display_title}
-Full address: {full_address}
-Region searched for news: {region_name}
+    user_msg = f"""Beach selected: {display_title}
+Region: {region_name}
 Today's date: {today_str}
-Wave height at this beach: {wave_height:.2f}m
-Swimmer experience level: {swimmer_grade}
-Wave risk classification: {wave_result['risk_level']} — {wave_result['advice']}
+Wave height: {wave_result['wave_height_m']:.2f}m
+Experience: {swimmer_grade}
+Wave risk: {wave_result['risk_level']} — {wave_result['advice']}
 
-══ LIVE NEWS HEADLINES FOR REGION: {region_name} ══
-{headlines_text}
+{evidence_text}
 
-Apply the 3-step reasoning. Remember today is {today_str}.
-If the headlines mention a ban — check if the ban end date is before or after today.
-Return the JSON advisory."""
+Apply all 4 phases. Reason carefully about whether ban dates are before or
+after {today_str}. Return the JSON advisory."""
 
-        response = client.chat.completions.create(
-            model       = deployment,
-            messages    = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user",   "content": user_msg},
-            ],
-            max_tokens  = 650,
-            temperature = 0.05,   # near-zero temp for reliable date reasoning
+    response = client.chat.completions.create(
+        model       = deployment,
+        messages    = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user",   "content": user_msg},
+        ],
+        max_tokens  = 700,
+        temperature = 0,
+    )
+
+    raw = response.choices[0].message.content.strip()
+    for fence in ["```json", "```"]:
+        if raw.startswith(fence):
+            raw = raw.split(fence, 1)[1].split("```")[0].strip()
+            break
+    return json.loads(raw)
+
+
+# ==============================================================================
+# 8. MASTER PIPELINE — orchestrates both agents
+# ==============================================================================
+def run_two_agent_pipeline(
+    display_title: str,
+    region_name:   str,
+    wave_height:   float,
+    swimmer_grade: str,
+    status_placeholder,          # Streamlit placeholder for live agent status
+) -> dict:
+    """
+    Orchestrates the full two-agent pipeline and returns the final advisory dict.
+    status_placeholder is used to show live "Agent N doing X" messages to user.
+    """
+    wave_result = classify_wave_risk(wave_height, swimmer_grade)
+
+    # ── Agent 1: Search (all configured providers run in parallel) ─────────────
+    serpapi_key = bool(st.secrets.get("SERPAPI_KEY", ""))
+    gcse_key    = bool(st.secrets.get("GOOGLE_CSE_KEY", ""))
+    active      = []
+    if serpapi_key: active.append("SerpAPI")
+    if gcse_key:    active.append("Google CSE")
+    active.append("RSS")   # always included
+    provider_label = " + ".join(active)
+
+    status_placeholder.markdown(
+        f'<p class="agent-step">🔍 Agent 1 — Searching via {provider_label}…</p>',
+        unsafe_allow_html=True
+    )
+
+    search_data    = agent1_search(region_name)
+    n_results      = search_data["total_found"]
+    n_ban_hits     = len(search_data["ban_hits"])
+    providers_used = search_data.get("providers_used", [])
+    provider_detail = " | ".join(providers_used)
+
+    status_placeholder.markdown(
+        f'<p class="agent-step">✅ Agent 1 — {n_results} unique results '
+        f'({n_ban_hits} with restriction signals) · {provider_detail}</p>',
+        unsafe_allow_html=True
+    )
+
+    # ── Agent 2: Verify + Advise ──────────────────────────────────────────────
+    status_placeholder.markdown(
+        '<p class="agent-step">🧠 Agent 2 — Verifying restrictions and '
+        'building advisory…</p>',
+        unsafe_allow_html=True
+    )
+
+    try:
+        result = agent2_verify_and_advise(
+            display_title = display_title,
+            region_name   = region_name,
+            search_data   = search_data,
+            wave_result   = wave_result,
+            swimmer_grade = swimmer_grade,
         )
-
-        raw = response.choices[0].message.content.strip()
-        agent_trace.append({"step": "GPT_DONE", "preview": raw[:300]})
-
-        for fence in ["```json", "```"]:
-            if raw.startswith(fence):
-                raw = raw.split(fence, 1)[1].split("```")[0].strip()
-                break
-
-        parsed = json.loads(raw)
-        parsed["_agent_trace"] = agent_trace
-        parsed["_headlines"]   = headlines
-        return parsed
-
+        status_placeholder.empty()
+        return result
     except Exception as e:
-        agent_trace.append({"step": "GPT_ERROR", "error": str(e)})
+        status_placeholder.empty()
+        return _fallback_advisory(display_title, wave_result, search_data, str(e))
 
-    # ── Pure-Python fallback (GPT unavailable) ────────────────────────────────
-    headline_blob = " ".join(
-        f"{h['title']} {h['desc']}" for h in headlines
-    ).lower()
-    ban_kws = [
-        "swimming banned", "beach closed", "entry prohibited", "sea entry banned",
-        "no swimming", "swimming prohibited", "ban on swimming", "bans swimming",
-        "water sports banned", "beach shut", "entry ban", "sea closed",
+
+def _raw_rss(region_name: str) -> list[dict]:
+    """
+    Google News RSS — free, no key, always available.
+    Returns raw list of {title, snippet, url}.
+    Lower quality than search APIs (shorter snippets, titles only sometimes)
+    but provides a useful baseline and costs nothing.
+    """
+    queries = [
+        f"{region_name} beach swimming ban",
+        f"{region_name} beach closed prohibited",
+        f"{region_name} sea entry banned monsoon",
+        f"{region_name} beach safety warning",
+        f"{region_name} coastal restriction drowning",
     ]
-    fallback_ban = any(kw in headline_blob for kw in ban_kws)
-    risk         = wave_result["risk_level"]
+    seen, raw = set(), []
+    for q in queries:
+        try:
+            encoded = requests.utils.quote(q)
+            url     = f"https://news.google.com/rss/search?q={encoded}&hl=en&gl=IN&ceid=IN:en"
+            resp    = requests.get(url, timeout=10,
+                                   headers={"User-Agent": "Mozilla/5.0 CoastPulseAI/6.0"})
+            if resp.status_code != 200:
+                continue
+            titles = re.findall(r'<title><!\[CDATA\[(.*?)\]\]></title>', resp.text)
+            descs  = re.findall(r'<description><!\[CDATA\[(.*?)\]\]></description>', resp.text)
+            for i, title in enumerate(titles[1:8]):
+                t = title.strip()
+                if t in seen:
+                    continue
+                seen.add(t)
+                desc_raw = descs[i] if i < len(descs) else ""
+                desc     = re.sub(r'<[^>]+>', ' ', desc_raw)
+                desc     = re.sub(r'\s+', ' ', desc).strip()[:300]
+                raw.append({"title": t, "snippet": desc, "url": ""})
+        except Exception:
+            continue
+    return raw
 
-    if fallback_ban:
-        status, bg_type = "BAN BY AUTHORITY", "ban"
-        desc = (
-            f"Authorities have issued an official ban on sea entry at {display_title}. "
-            f"All water activities are currently prohibited. "
-            f"Current wave height is {wave_height:.2f}m. "
-            f"Please do not enter the water until the ban is officially lifted."
-        )
+
+def _rss_fallback(region_name: str) -> dict:
+    """
+    Packaged RSS-only fallback for when no search keys are configured at all.
+    Used only by _fallback_advisory — not by agent1_search (which always runs RSS).
+    """
+    raw    = _raw_rss(region_name)
+    result = _build_search_results(raw)
+    result["providers_used"] = [f"RSS only ({len(raw)} results)"]
+    return result
+
+
+def _fallback_advisory(display_title: str, wave_result: dict,
+                       search_data: dict, error: str) -> dict:
+    """Pure-Python fallback when GPT call fails."""
+    blob = " ".join(
+        f"{r['title']} {r['snippet']}" for r in search_data.get("results", [])
+    ).lower()
+    ban_kws = ["swimming banned", "beach closed", "entry prohibited",
+               "sea entry banned", "no swimming", "water sports banned"]
+    has_ban  = any(k in blob for k in ban_kws)
+    risk     = wave_result["risk_level"]
+    wh       = wave_result["wave_height_m"]
+
+    if has_ban:
+        return {"status": "BAN BY AUTHORITY", "bg_type": "ban",
+                "ban_detected": True, "ban_expired": False,
+                "ban_scope": None, "ban_dates": None, "ban_by": None,
+                "ban_reason": "official order",
+                "description": (
+                    f"Authorities have issued an official ban on sea entry at "
+                    f"{display_title}. All water activities are currently prohibited. "
+                    f"Current wave height is {wh:.2f}m. Please do not enter the water "
+                    f"until the ban is officially lifted."
+                )}
     elif risk == "HIGH":
-        status, bg_type = "CAUTION", "caution"
-        desc = (
-            f"Conditions at {display_title} are risky right now. "
-            f"{wave_result['advice']} Stay close to shore and heed all flag warnings."
-        )
+        return {"status": "CAUTION", "bg_type": "caution",
+                "ban_detected": False, "ban_expired": False,
+                "ban_scope": None, "ban_dates": None, "ban_by": None,
+                "ban_reason": None,
+                "description": (
+                    f"{display_title} is open but conditions are risky. "
+                    f"{wave_result['advice']} Exercise extreme caution and "
+                    f"stay close to shore at all times."
+                )}
     elif risk == "MODERATE":
-        status, bg_type = "CAUTION", "caution"
-        desc = (
-            f"The sea at {display_title} is moderately choppy. "
-            f"{wave_result['advice']} Swim only in designated safe zones with lifeguards present."
-        )
+        return {"status": "CAUTION", "bg_type": "caution",
+                "ban_detected": False, "ban_expired": False,
+                "ban_scope": None, "ban_dates": None, "ban_by": None,
+                "ban_reason": None,
+                "description": (
+                    f"The sea at {display_title} is moderately choppy. "
+                    f"{wave_result['advice']} Swim only in supervised zones "
+                    f"with lifeguards present."
+                )}
     else:
-        status, bg_type = "SAFE", "safe"
-        desc = (
-            f"Conditions at {display_title} look good for a beach visit. "
-            f"{wave_result['advice']} Always swim in supervised areas and watch for flag warnings."
-        )
-
-    return {
-        "status": status, "bg_type": bg_type, "ban_detected": fallback_ban,
-        "ban_expired": False, "ban_reason": None, "ban_dates": None, "ban_by": None,
-        "description": desc, "_agent_trace": agent_trace, "_headlines": headlines,
-    }
+        return {"status": "SAFE", "bg_type": "safe",
+                "ban_detected": False, "ban_expired": False,
+                "ban_scope": None, "ban_dates": None, "ban_by": None,
+                "ban_reason": None,
+                "description": (
+                    f"{display_title} looks good for a beach visit today. "
+                    f"{wave_result['advice']} Always swim in supervised areas "
+                    f"and watch for local flag warnings."
+                )}
 
 
 # ==============================================================================
-# 8. RUNTIME PIPELINE CONTROLLER
+# 9. RUNTIME CONTROLLER
 # ==============================================================================
-if "selected_spot_data" not in st.session_state:
-    st.session_state.selected_spot_data = None
-if "last_query_string" not in st.session_state:
-    st.session_state.last_query_string = ""
-if "beach_list" not in st.session_state:
-    st.session_state.beach_list = []
-if "region_name" not in st.session_state:
-    st.session_state.region_name = ""
+for key in ["selected_spot_data", "last_query_string", "beach_list", "region_name"]:
+    if key not in st.session_state:
+        st.session_state[key] = None if key in ("selected_spot_data",) else \
+                                 [] if key == "beach_list" else ""
 
-# Reset when user changes query
 if user_input != st.session_state.last_query_string:
     st.session_state.selected_spot_data = None
     st.session_state.last_query_string  = user_input
@@ -792,97 +931,93 @@ if user_input != st.session_state.last_query_string:
 if user_input:
     country_iso = GLOBAL_COUNTRIES[selected_country]
 
-    # ── Step A: Resolve beach list ────────────────────────────────────────────
+    # ── Resolve beach list ────────────────────────────────────────────────────
     if not st.session_state.beach_list:
         with st.spinner("🔍 Finding beaches in this region…"):
-            beaches, region_nm = resolve_beaches_for_region(user_input, country_iso)
+            beaches, rn = resolve_beaches_for_region(user_input, country_iso)
             st.session_state.beach_list  = beaches
-            st.session_state.region_name = region_nm
+            st.session_state.region_name = rn
 
-    beaches    = st.session_state.beach_list
+    beaches     = st.session_state.beach_list
     region_name = st.session_state.region_name
 
-    # ── Step B: Show beach picker ─────────────────────────────────────────────
+    # ── Beach picker ──────────────────────────────────────────────────────────
     if st.session_state.selected_spot_data is None:
         if beaches:
-            count = len(beaches)
+            c = len(beaches)
             st.markdown(
-                f'<p class="clean-search-text">🏖️ Found {count} beach{"es" if count != 1 else ""} '
-                f'in <strong>{region_name}</strong> — select one to check conditions:</p>',
+                f'<p class="clean-search-text">🏖️ Found <strong>{c}</strong> '
+                f'beach{"es" if c != 1 else ""} in <strong>{region_name}</strong>'
+                f' — select one to check conditions:</p>',
                 unsafe_allow_html=True
             )
-            for idx, candidate in enumerate(beaches):
-                lbl = f"🏖️ {candidate['display_title']}"
-                state_part   = candidate.get("state", "")
-                country_part = candidate.get("country", "")
-                if state_part:   lbl += f", {state_part}"
-                if country_part: lbl += f" ({country_part})"
+            for idx, b in enumerate(beaches):
+                lbl = f"🏖️ {b['display_title']}"
+                if b.get("state"):   lbl += f", {b['state']}"
+                if b.get("country"): lbl += f" ({b['country']})"
                 if st.button(lbl, key=f"beach_btn_{idx}", use_container_width=True):
-                    st.session_state.selected_spot_data = candidate
+                    st.session_state.selected_spot_data = b
                     st.rerun()
         else:
             st.markdown("""
-                <div style="background:#ffeeef;border:1px solid #fca5a5;padding:15px;
-                border-radius:8px;text-align:center;color:#b91c1c;font-size:13.5px;
-                font-weight:500;margin-top:20px;">
-                    No beaches found for this location. Try a different spelling
-                    or select a country from the dropdown.
+                <div style="background:#ffeeef;border:1px solid #fca5a5;
+                padding:15px;border-radius:8px;text-align:center;
+                color:#b91c1c;font-size:13.5px;font-weight:500;margin-top:20px;">
+                No beaches found. Try a different spelling or select a country.
                 </div>""", unsafe_allow_html=True)
 
-    # ── Step C: Run agent and render card ─────────────────────────────────────
+    # ── Run pipeline and render card ──────────────────────────────────────────
     if st.session_state.selected_spot_data is not None:
         node = st.session_state.selected_spot_data
         lat, lon = node["lat"], node["lon"]
 
         # Wave data
-        marine_payload      = fetch_marine_telemetry(lat, lon)
-        current_wave_height = 0.0
-        daily_max_forecasts = []
-        forecast_dates      = []
+        marine          = fetch_marine_telemetry(lat, lon)
+        wave_height     = 0.0
+        daily_max       = []
+        forecast_dates  = []
 
-        if marine_payload:
-            if "hourly" in marine_payload and "wave_height" in marine_payload["hourly"]:
-                ts  = marine_payload["hourly"]["time"]
-                hs  = [h if h is not None else 0.0
-                       for h in marine_payload["hourly"]["wave_height"]]
+        if marine:
+            if "hourly" in marine and "wave_height" in marine["hourly"]:
+                ts  = marine["hourly"]["time"]
+                hs  = [h or 0.0 for h in marine["hourly"]["wave_height"]]
                 now = datetime.now()
-                idx = min(
-                    range(len(ts)),
-                    key=lambda i: abs(datetime.fromisoformat(ts[i].replace("Z", "")) - now)
-                )
-                current_wave_height = hs[idx]
-            if "daily" in marine_payload and "wave_height_max" in marine_payload["daily"]:
-                daily_max_forecasts = [
-                    w if w is not None else 0.0
-                    for w in marine_payload["daily"]["wave_height_max"]
-                ]
-                forecast_dates = marine_payload["daily"].get("time", [])
+                idx = min(range(len(ts)),
+                          key=lambda i: abs(
+                              datetime.fromisoformat(ts[i].replace("Z","")) - now))
+                wave_height = hs[idx]
+            if "daily" in marine and "wave_height_max" in marine["daily"]:
+                daily_max      = [w or 0.0 for w in marine["daily"]["wave_height_max"]]
+                forecast_dates = marine["daily"].get("time", [])
 
-        with st.spinner("🤖 Analysing live regional news and wave conditions…"):
-            output = run_coastal_safety_agent(
-                display_title = node["display_title"],
-                full_address  = node.get("full_address", node["display_title"]),
-                region_name   = region_name,          # ← used for RSS, not beach name
-                wave_height   = current_wave_height,
-                swimmer_grade = skill_level,
-            )
+        # Live agent status display
+        status_ph = st.empty()
 
-        # ── Parse output ──────────────────────────────────────────────────────
+        output = run_two_agent_pipeline(
+            display_title       = node["display_title"],
+            region_name         = region_name,
+            wave_height         = wave_height,
+            swimmer_grade       = skill_level,
+            status_placeholder  = status_ph,
+        )
+
+        # Parse
         status      = output.get("status",       "SAFE")
         bg_type     = output.get("bg_type",      "safe")
         has_ban     = output.get("ban_detected",  False)
         ban_expired = output.get("ban_expired",   False)
-        ban_reason  = output.get("ban_reason")   or ""
+        ban_scope   = output.get("ban_scope")    or ""
         ban_dates   = output.get("ban_dates")    or ""
         ban_by      = output.get("ban_by")       or ""
+        ban_reason  = output.get("ban_reason")   or ""
         ai_desc     = output.get("description",  "")
 
-        for junk in ["```html", "```json", "```", "<div>", "</div>",
-                     "<p>", "</p>", "<span>", "</span>"]:
+        # Sanitise description
+        for junk in ["```html","```json","```","<div>","</div>","<p>","</p>"]:
             ai_desc = ai_desc.replace(junk, "")
         ai_desc = ai_desc.strip()
 
-        # ── Status pill ───────────────────────────────────────────────────────
+        # Status pill
         if has_ban and not ban_expired:
             display_status = "🚫 BAN BY AUTHORITY"
             pill_class     = "badge-ban"
@@ -894,30 +1029,29 @@ if user_input:
             display_status = "✅ SAFE"
             pill_class     = "badge-safe"
 
-        # ── Background images ─────────────────────────────────────────────────
-        bg_images = {
+        # Background images
+        bg_img = {
             "ban":     "https://images.unsplash.com/photo-1505118380757-91f5f5632de0"
-                       "?auto=format&fit=crop&w=1200&q=80",   # stormy sea
+                       "?auto=format&fit=crop&w=1200&q=80",
             "caution": "https://images.unsplash.com/photo-1519046904884-53103b34b206"
-                       "?auto=format&fit=crop&w=1200&q=80",   # rough waves
+                       "?auto=format&fit=crop&w=1200&q=80",
             "safe":    "https://images.unsplash.com/photo-1507525428034-b723cf961d3e"
-                       "?auto=format&fit=crop&w=1200&q=80",   # calm tropical beach
-        }
-        bg_img = bg_images.get(bg_type, bg_images["safe"])
+                       "?auto=format&fit=crop&w=1200&q=80",
+        }.get(bg_type, "https://images.unsplash.com/photo-1507525428034-b723cf961d3e"
+                        "?auto=format&fit=crop&w=1200&q=80")
 
-        # ── Ban detail box ────────────────────────────────────────────────────
+        # Ban detail box
         ban_box_html = ""
         if has_ban and not ban_expired:
             rows = []
-            if ban_by:
-                rows.append(f"<strong>Issued by:</strong> {ban_by}")
-            if ban_reason:
-                rows.append(f"<strong>Reason:</strong> {ban_reason.capitalize()}")
-            if ban_dates:
-                rows.append(f"<strong>Restriction period:</strong> {ban_dates}")
-            else:
-                rows.append("<strong>Duration:</strong> Ongoing — verify with local authorities")
-
+            if ban_by:     rows.append(f"<strong>Issued by:</strong> {ban_by}")
+            if ban_scope:  rows.append(f"<strong>Covers:</strong> {ban_scope.capitalize()}")
+            if ban_reason: rows.append(f"<strong>Reason:</strong> {ban_reason.capitalize()}")
+            rows.append(
+                f"<strong>Restriction period:</strong> {ban_dates}"
+                if ban_dates else
+                "<strong>Duration:</strong> Ongoing — verify with local authorities"
+            )
             ban_box_html = (
                 '<div class="ban-box">'
                 '<div class="ban-box-title">🚫 Official Ban In Effect</div>'
@@ -925,48 +1059,48 @@ if user_input:
                 '</div>'
             )
 
-        # ── Main advisory card ────────────────────────────────────────────────
+        # Advisory card
         card_style = (
             "border-radius:24px;padding:40px;"
             "box-shadow:0 20px 40px rgba(15,23,42,0.16);"
             "border:1px solid rgba(255,255,255,0.1);"
             "margin-top:25px;color:#ffffff;"
-            f"background-image:linear-gradient(rgba(10,20,40,0.60),rgba(10,20,40,0.75)),"
-            f"url({bg_img});"
+            f"background-image:linear-gradient(rgba(10,20,40,0.60),"
+            f"rgba(10,20,40,0.75)),url({bg_img});"
             "background-size:cover;background-position:center;"
         )
         st.markdown(
             f'<div style="{card_style}">'
             f'<span class="{pill_class}">{display_status}</span>'
-            f'<h3 class="advisory-header-title">Safety Report: {node["display_title"]}</h3>'
+            f'<h3 class="advisory-header-title">Safety Report: '
+            f'{node["display_title"]}</h3>'
             f'{ban_box_html}'
             f'<p class="advisory-prose-body">{ai_desc}</p>'
-            f'<div class="brand-stamp-footer">✨ CoastPulse AI · Powered by Azure AI Foundry</div>'
+            f'<div class="brand-stamp-footer">'
+            f'✨ CoastPulse AI · Powered by Azure AI Foundry</div>'
             f'</div>',
             unsafe_allow_html=True
         )
 
-        # ── 7-Day Trip Planner ────────────────────────────────────────────────
-        if daily_max_forecasts:
+        # 7-Day Trip Planner
+        if daily_max:
             st.markdown(
                 "<br><h4 style='font-size:16px;font-weight:700;color:#0f172a;"
                 "margin-bottom:15px;'>📅 Your 7-Day Trip Planner Matrix</h4>",
                 unsafe_allow_html=True
             )
             cols = st.columns(7)
-            for i in range(min(7, len(daily_max_forecasts))):
+            for i in range(min(7, len(daily_max))):
                 p_date = datetime.strptime(forecast_dates[i], "%Y-%m-%d")
-                max_w  = daily_max_forecasts[i]
-
+                mw     = daily_max[i]
                 if has_ban and not ban_expired:
                     lbl, bg, txt = "🚫 BANNED",  "#f3e8ff", "#6d28d9"
-                elif max_w > 1.6:
+                elif mw > 1.6:
                     lbl, bg, txt = "🚫 RISK",    "#fff1f2", "#b91c1c"
-                elif max_w > 1.1 or status == "CAUTION":
+                elif mw > 1.1 or status == "CAUTION":
                     lbl, bg, txt = "🟡 CAUTION", "#fef9c3", "#a16207"
                 else:
                     lbl, bg, txt = "🟢 PERFECT", "#f0fdf4", "#15803d"
-
                 with cols[i]:
                     st.markdown(
                         f'<div class="planner-grid-card" '
@@ -975,10 +1109,10 @@ if user_input:
                         f'{p_date.strftime("%a")}</strong><br>'
                         f'<span style="font-size:10px;color:#64748b;">'
                         f'{p_date.strftime("%b %d")}</span>'
-                        f'<p style="margin:8px 0;font-size:11px;font-weight:800;color:{txt};">'
-                        f'{lbl}</p>'
+                        f'<p style="margin:8px 0;font-size:11px;font-weight:800;'
+                        f'color:{txt};">{lbl}</p>'
                         f'<span style="font-size:10px;color:#475569;">'
-                        f'<strong>{max_w:.2f}m</strong></span>'
+                        f'<strong>{mw:.2f}m</strong></span>'
                         f'</div>',
                         unsafe_allow_html=True
                     )
