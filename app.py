@@ -155,15 +155,16 @@ def resolve_location_candidates(query_text, country_iso):
                 score += 50
             elif "beach" in item.get("display_name", "").lower():
                 score += 40
-            if "daman" in item.get("display_name", "").lower():
-                score += 30
+            # Extract district/county for smarter search query building
+            district = addr_details.get("county", addr_details.get("state_district", ""))
             ranked_nodes.append({
                 "score": score,
                 "display_title": first_label_token,
-                "full_address": item.get("display_name", ""),  # FIX #7: store full address
+                "full_address": item.get("display_name", ""),
                 "lat": float(item["lat"]), "lon": float(item["lon"]),
                 "state": addr_details.get("state", addr_details.get("county", "")),
-                "country": addr_details.get("country", "")
+                "country": addr_details.get("country", ""),
+                "district": district,
             })
         return [n for n in sorted(ranked_nodes, key=lambda x: x["score"], reverse=True) if n["score"] > -20][:5]
     except Exception:
@@ -183,34 +184,154 @@ def fetch_marine_telemetry(lat, lon):
         return None
 
 
-# ==============================================================================
-# BAN DETECTION CONSTANTS
-# ==============================================================================
+def extract_search_name(display_title: str, full_address: str, user_query: str) -> str:
+    """
+    FIX: Extracts the best district/region name for news searches.
 
-# FIX #2: Expanded keyword list — covers indirect/soft ban language too
-BAN_KEYWORDS = [
-    # Direct prohibitions
-    "swimming prohibited", "swimming banned", "swimming ban", "swimming restricted",
-    "entry prohibited", "entry banned", "entry restricted", "entry ban",
-    "beach closed", "beach closure", "beach ban", "beach prohibited",
-    "water sports suspended", "water sports banned", "water sports prohibited",
-    "tourists prohibited", "tourists banned", "no swimming", "bathing prohibited",
-    "sea entry banned", "sea entry prohibited", "monsoon ban", "monsoon closure",
-    "strictly banned", "completely prohibited", "banned swimming", "bans swimming",
-    "selfies banned", "water sports ban",
-    # Soft/indirect ban language (ChatGPT #2)
-    "sea access suspended", "tourist movement restricted", "beach temporarily inaccessible",
-    "authorities advise against swimming", "lifeguards withdrawn",
-    "visitors advised not to swim", "rough sea conditions", "dangerous sea conditions",
-    "sea rough", "unsafe for swimming", "unsafe for bathing",
-    "high tide warning", "tidal warning", "riptide warning",
-    # Official order language
-    "district collector", "collector order", "administration order",
-    "prohibition order", "municipal order", "government order",
-    "red flag", "red alert", "danger zone", "high alert", "drowning",
-    # News-style phrases (Indian Express style)
-    "bans swimming at beaches", "ban on swimming", "ban on water sports",
-    "after drowning", "after drownings", "prohibited swimming",
+    Problem: Nominatim display_title can be "Diu Airport", "Nagoa Beach Rd", etc.
+    Searching "Diu Airport swimming ban" returns 0 results.
+    We need "Diu" or "Diu district" — the administrative region.
+
+    Strategy:
+      1. Check if user_query is short (1-2 words) and matches a known place → use it directly
+      2. Extract meaningful tokens from full_address (state, district, known city)
+      3. Fall back to first token of display_title
+
+    Examples:
+      display_title="Diu Airport", full_address="..., Diu district, ..., India"
+        → returns "Diu"
+      display_title="Nagoa Beach", full_address="..., Diu district, ..., India"
+        → returns "Nagoa Beach Diu"
+      display_title="Calangute Beach", full_address="..., North Goa, Goa, India"
+        → returns "Calangute Beach Goa"
+    """
+    # Clean user query — if short and meaningful, trust it most
+    clean_query = user_query.strip().lower()
+
+    # Extract address tokens (split by comma, strip whitespace)
+    addr_tokens = [t.strip() for t in full_address.split(",") if t.strip()]
+
+    # Find administrative region tokens (district, state) from address
+    # Skip very generic or very long tokens
+    region_tokens = []
+    skip_words = {"india", "beach", "road", "street", "airport", "port", "jetty", "pier",
+                  "india", "united states", "indonesia", "australia", "thailand"}
+    for token in addr_tokens[1:]:  # skip first token (it's display_title itself)
+        t_lower = token.lower().strip()
+        if (len(t_lower) > 2 and len(t_lower) < 30
+                and t_lower not in skip_words
+                and not any(skip in t_lower for skip in ["district", "division", "tehsil", "taluka"])):
+            region_tokens.append(token.strip())
+        elif "district" in t_lower:
+            # Extract the place name before "district"
+            place = t_lower.replace("district", "").strip().title()
+            if place and place.lower() not in skip_words:
+                region_tokens.insert(0, place)  # prioritise district name
+
+    # Build search name: original query + first meaningful region token
+    if clean_query and len(clean_query.split()) <= 3:
+        base = user_query.strip().title()
+    else:
+        base = addr_tokens[0] if addr_tokens else display_title
+
+    region = region_tokens[0] if region_tokens else ""
+
+    # If base already contains region info, don't duplicate
+    if region and region.lower() not in base.lower():
+        return f"{base} {region}".strip()
+    return base.strip()
+
+
+# ==============================================================================
+# BAN DETECTION CONSTANTS — WEIGHTED SCORING SYSTEM
+#
+# ChatGPT Fix: Replace exact-phrase matching with weighted token scoring.
+# Each token/phrase has a weight. ban_detected = True when total score >= 40.
+#
+# Why: "tourists prohibited from entering sea" won't match "sea entry prohibited"
+# exactly, but WILL score: "prohibited"(20) + "sea"(10) = 30 — near threshold.
+# Combining with "district"(10) from the same article → 40 → ban detected.
+#
+# High-confidence tokens (single word = ban by itself): weight >= 40
+# Medium tokens (strong signal but needs corroboration): weight 15-25
+# Low tokens (weak signal, needs multiple): weight 5-15
+# ==============================================================================
+BAN_SCORE_WEIGHTS = {
+    # Definitive ban phrases — single match enough
+    "swimming prohibited":          45,
+    "swimming banned":              45,
+    "swimming ban":                 40,
+    "bans swimming":                40,
+    "ban on swimming":              40,
+    "bathing prohibited":           40,
+    "beach closed":                 40,
+    "no swimming":                  40,
+    "entry prohibited":             38,
+    "entry banned":                 38,
+    "entry ban":                    35,
+    "beach closure":                35,
+    "water sports banned":          35,
+    "water sports suspended":       35,
+    "ban on water sports":          35,
+    "monsoon ban":                  35,
+    "sea entry banned":             35,
+    "sea entry prohibited":         35,
+    "strictly banned":              35,
+    "completely prohibited":        35,
+    "prohibited swimming":          35,
+    "bans swimming at beaches":     45,
+    "selfies banned":               30,
+    # Soft/indirect ban language
+    "sea access suspended":         30,
+    "tourist movement restricted":  25,
+    "beach temporarily inaccessible": 30,
+    "authorities advise against":   25,
+    "lifeguards withdrawn":         25,
+    "visitors advised not to swim": 30,
+    "unsafe for swimming":          28,
+    "unsafe for bathing":           28,
+    "dangerous sea conditions":     20,
+    "rough sea conditions":         15,
+    "sea rough":                    10,
+    # Official order language — high weight when combined
+    "district collector":           20,
+    "collector order":              25,
+    "administration order":         20,
+    "prohibition order":            30,
+    "municipal order":              18,
+    "government order":             15,
+    "red flag":                     20,
+    "red alert":                    20,
+    "high alert":                   15,
+    # Individual high-signal words — accumulate with others
+    "prohibited":                   20,
+    "banned":                       18,
+    "ban":                          15,
+    "restricted":                   12,
+    "closed":                       15,
+    "suspended":                    12,
+    "collector":                    10,
+    "drowning":                     10,
+    "drownings":                    12,
+    "after drowning":               18,
+    "after drownings":              20,
+    "sea":                          5,
+    "swimming":                     8,
+    "monsoon":                      8,
+    "tidal warning":                18,
+    "riptide warning":              18,
+    "high tide warning":            18,
+    "danger zone":                  15,
+}
+
+# Threshold: corpus must accumulate this score to trigger ban_detected=True
+BAN_SCORE_THRESHOLD = 40
+
+# Historical noise — used to filter Wikipedia false positives (unchanged)
+HISTORICAL_NOISE_PHRASES = [
+    "was closed", "had been closed", "were closed", "closed in 20",
+    "historically", "in the past", "previously banned", "used to be banned",
+    "was banned", "had banned", "were banned",
 ]
 
 # FIX #3: Wikipedia-specific phrases that indicate HISTORICAL bans, not current ones
@@ -363,11 +484,37 @@ def search_government_advisories(location_name: str) -> dict:
     agent_log = []
     news_texts = []       # from live news sources only (Google RSS, GNews)
     gov_texts = []        # from official government pages
-    wiki_texts = []       # from Wikipedia (treated separately for FIX #3)
+    wiki_texts = []       # from Wikipedia (treated separately for historical filter)
     sources_checked = []
 
+    # ── Build smart search name from full address ─────────────────────────────
+    # location_name here is full_address e.g. "Diu Airport, Diu district, ..."
+    # We derive a clean region name like "Diu" for effective news searches.
+    # This is the key fix for "Diu Airport" returning 0 results.
+    addr_parts = [p.strip() for p in location_name.split(",") if p.strip()]
+    search_name = location_name  # default fallback
+
+    # Extract district/region name: look for "X district" pattern first
+    for part in addr_parts:
+        if "district" in part.lower():
+            district_name = part.lower().replace("district", "").strip().title()
+            if district_name:
+                search_name = district_name
+                break
+    else:
+        # No district found — use second token (usually more specific than first)
+        if len(addr_parts) >= 2:
+            candidate = addr_parts[1]
+            # Skip generic region labels
+            if not any(skip in candidate.lower() for skip in ["india", "district", "division"]):
+                search_name = candidate
+        elif addr_parts:
+            search_name = addr_parts[0]
+
+    agent_log.append(f"Search name derived: '{search_name}' (from: '{location_name[:60]}')")
+
     # ── Layer 1: Google News RSS ─────────────────────────────────────────────
-    rss_items = _fetch_google_news_rss(location_name)
+    rss_items = _fetch_google_news_rss(search_name)
     for item in rss_items:
         news_texts.append(item["text"])
     if rss_items:
@@ -378,9 +525,11 @@ def search_government_advisories(location_name: str) -> dict:
 
     # ── Layer 2: Official government website scraping ────────────────────────
     loc_lower = location_name.lower()
+    search_name_lower = search_name.lower()
     matched_urls = []
     for keyword, urls in OFFICIAL_SOURCE_PATTERNS.items():
-        if keyword in loc_lower:
+        # Match against both full address AND derived search_name
+        if keyword in loc_lower or keyword in search_name_lower:
             matched_urls.extend(urls)
     for gov_url in matched_urls[:2]:
         text = _scrape_page_text(gov_url)
@@ -396,7 +545,7 @@ def search_government_advisories(location_name: str) -> dict:
     if gnews_key:
         try:
             params = {
-                "q": f"{location_name} beach swimming ban prohibited",
+                "q": f"{search_name} beach swimming ban prohibited",
                 "token": gnews_key, "lang": "en", "max": 5, "sortby": "publishedAt"
             }
             resp = requests.get("https://gnews.io/api/v4/search", params=params, timeout=10)
@@ -414,7 +563,7 @@ def search_government_advisories(location_name: str) -> dict:
 
     # ── Layer 4: Wikipedia (context only, filtered separately) ───────────────
     try:
-        wiki_name = location_name.split(",")[0].strip().replace(" ", "_")
+        wiki_name = search_name.replace(" ", "_")
         resp = requests.get(f"https://en.wikipedia.org/api/rest_v1/page/summary/{wiki_name}", timeout=8)
         if resp.status_code == 200:
             extract = resp.json().get("extract", "")[:600]
@@ -425,32 +574,41 @@ def search_government_advisories(location_name: str) -> dict:
     except Exception:
         agent_log.append("Wikipedia: failed")
 
-    # ── Keyword scanning ─────────────────────────────────────────────────────
-    # FIX #3: Scan news + gov sources first. Wikipedia gets special treatment.
+    # ── Weighted score-based ban detection ──────────────────────────────────
+    # Primary corpus = news + gov (trusted live sources)
+    # Wikipedia corpus = treated separately to avoid historical false positives
     primary_corpus = " ".join(news_texts + gov_texts).lower()
     wiki_corpus    = " ".join(wiki_texts).lower()
 
-    primary_matches = [kw for kw in BAN_KEYWORDS if kw in primary_corpus]
-    wiki_matches    = [kw for kw in BAN_KEYWORDS if kw in wiki_corpus]
+    def compute_ban_score(corpus: str) -> tuple:
+        """Returns (total_score, matched_tokens_list)"""
+        total = 0
+        matched = []
+        for phrase, weight in BAN_SCORE_WEIGHTS.items():
+            if phrase in corpus:
+                total += weight
+                matched.append(f"{phrase}(+{weight})")
+        return total, matched
 
-    # Determine if Wikipedia match is likely historical noise
+    primary_score, primary_matched = compute_ban_score(primary_corpus)
+    wiki_score,    wiki_matched    = compute_ban_score(wiki_corpus)
     wiki_is_historical = any(phrase in wiki_corpus for phrase in HISTORICAL_NOISE_PHRASES)
 
-    if primary_matches:
+    agent_log.append(f"Primary ban score: {primary_score} | tokens: {primary_matched[:5]}")
+    agent_log.append(f"Wiki ban score: {wiki_score} | historical: {wiki_is_historical}")
+
+    if primary_score >= BAN_SCORE_THRESHOLD:
         ban_detected = True
-        matched_keywords = primary_matches
-        agent_log.append(f"Ban detected via PRIMARY sources: {primary_matches[:4]}")
-    elif wiki_matches and not wiki_is_historical:
+        matched_keywords = primary_matched[:8]
+        agent_log.append(f"✅ Ban CONFIRMED via primary sources (score={primary_score})")
+    elif wiki_score >= BAN_SCORE_THRESHOLD and not wiki_is_historical:
         ban_detected = True
-        matched_keywords = wiki_matches
-        agent_log.append(f"Ban detected via Wikipedia (non-historical): {wiki_matches[:4]}")
+        matched_keywords = wiki_matched[:8]
+        agent_log.append(f"✅ Ban CONFIRMED via Wikipedia non-historical (score={wiki_score})")
     else:
         ban_detected = False
         matched_keywords = []
-        if wiki_matches and wiki_is_historical:
-            agent_log.append(f"Wikipedia keywords ignored (historical context): {wiki_matches[:3]}")
-        else:
-            agent_log.append("No ban keywords matched in any source")
+        agent_log.append(f"❌ No ban — primary_score={primary_score}, wiki_score={wiki_score} (threshold={BAN_SCORE_THRESHOLD})")
 
     # ── Date extraction + FIX #4: date validation ────────────────────────────
     ban_dates = None
