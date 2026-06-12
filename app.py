@@ -29,9 +29,7 @@ st.markdown("""
     .brand-title        { font-size: 36px; font-weight: 800; color: #1d4ed8; margin: 0; }
     .brand-tagline      { font-size: 15px; color: #334155; font-weight: 600;
                           margin-top: 5px; margin-bottom: 25px; }
-    .illustration-wrapper { background-color: #ffffff; border-radius: 12px; padding: 20px;
-                             text-align: center; margin-bottom: 30px;
-                             box-shadow: 0 1px 4px rgba(0,0,0,0.02); }
+    
     .field-label  { font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
     .clean-search-text { font-size: 14.5px; font-weight: 700; color: #1d4ed8;
                          margin-top: 25px; margin-bottom: 12px; }
@@ -78,21 +76,14 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="illustration-wrapper">', unsafe_allow_html=True)
 animation_filename = "beach_animation.json"
-local_lottie_json = None
+
 if os.path.exists(animation_filename):
     with open(animation_filename, "r", encoding="utf-8") as f:
         local_lottie_json = json.load(f)
-if local_lottie_json:
+
+    # Just render the animation directly without splitting custom HTML divs
     st_lottie.st_lottie(local_lottie_json, height=160, key="coastpulse_lottie", speed=0.85)
-else:
-    st.markdown(
-        '<img src="https://illustrations.popsy.co/amber/relaxing-on-hammock.svg"'
-        ' style="height:150px;" />',
-        unsafe_allow_html=True
-    )
-st.markdown('</div>', unsafe_allow_html=True)
 
 # ==============================================================================
 # 2. COUNTRIES
@@ -771,7 +762,7 @@ def run_two_agent_pipeline(
     provider_label = " + ".join(active)
 
     status_placeholder.markdown(
-        f'<p class="agent-step">🔍 Agent 1 — Searching via {provider_label}…</p>',
+        f'<p class="agent-step">✨ AI agent is gathering real-time safety info and preparing your advisory...</p>',
         unsafe_allow_html=True
     )
 
@@ -789,8 +780,7 @@ def run_two_agent_pipeline(
 
     # ── Agent 2: Verify + Advise ──────────────────────────────────────────────
     status_placeholder.markdown(
-        '<p class="agent-step">🧠 Agent 2 — Verifying restrictions and '
-        'building advisory…</p>',
+        '<p class="agent-step">✨ AI agent is gathering real-time safety info and preparing your advisory...</p>',
         unsafe_allow_html=True
     )
 
@@ -1031,7 +1021,7 @@ if user_input:
 
         # Background images
         bg_img = {
-            "ban":     "https://images.unsplash.com/photo-1505118380757-91f5f5632de0"
+            "ban":     "https://images.unsplash.com/photo-1625224588466-56616e65dc59"
                        "?auto=format&fit=crop&w=1200&q=80",
             "caution": "https://images.unsplash.com/photo-1519046904884-53103b34b206"
                        "?auto=format&fit=crop&w=1200&q=80",
@@ -1077,7 +1067,7 @@ if user_input:
             f'{ban_box_html}'
             f'<p class="advisory-prose-body">{ai_desc}</p>'
             f'<div class="brand-stamp-footer">'
-            f'✨ CoastPulse AI · Powered by Azure AI Foundry</div>'
+            f'✨ Powered by CoastPulse AI </div>'
             f'</div>',
             unsafe_allow_html=True
         )
