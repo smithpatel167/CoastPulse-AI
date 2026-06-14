@@ -29,7 +29,7 @@ st.markdown("""
     .brand-title        { font-size: 36px; font-weight: 800; color: #1d4ed8; margin: 0; }
     .brand-tagline      { font-size: 15px; color: #334155; font-weight: 600;
                           margin-top: 5px; margin-bottom: 25px; }
-    
+
     .field-label  { font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
     .clean-search-text { font-size: 14.5px; font-weight: 700; color: #1d4ed8;
                          margin-top: 25px; margin-bottom: 12px; }
@@ -81,8 +81,6 @@ animation_filename = "beach_animation.json"
 if os.path.exists(animation_filename):
     with open(animation_filename, "r", encoding="utf-8") as f:
         local_lottie_json = json.load(f)
-
-    # Just render the animation directly without splitting custom HTML divs
     st_lottie.st_lottie(local_lottie_json, height=160, key="coastpulse_lottie", speed=0.85)
 
 # ==============================================================================
@@ -131,8 +129,7 @@ GLOBAL_COUNTRIES = {
     "Uruguay": "uy", "Vanuatu": "vu", "Venezuela": "ve", "Vietnam": "vn", "Yemen": "ye",
 }
 
-st.markdown("<hr style='border-color:#e2e8f0;margin-bottom:20px;'>",
-            unsafe_allow_html=True)
+st.markdown("<hr style='border-color:#e2e8f0;margin-bottom:20px;'>", unsafe_allow_html=True)
 row_cols = st.columns([1.2, 1.8, 1.5])
 with row_cols[0]:
     st.markdown('<p class="field-label">Country:</p>', unsafe_allow_html=True)
@@ -156,24 +153,20 @@ with row_cols[2]:
 
 
 # ==============================================================================
-# 3. BEACH FINDER  (Overpass API → Nominatim fallback)
-#    Returns ONLY actual beaches — zero restaurants, hotels, cafes.
+# 3. BEACH FINDER
 # ==============================================================================
-
 @st.cache_data(ttl=3600, show_spinner=False)
 def geocode_region(query_text: str, country_iso: str) -> dict | None:
-    """Geocode the typed region name to get bounding box for Overpass."""
     headers = {"User-Agent": "CoastPulseAI/5.0 (contact@coastpulse.ai)"}
-    params  = {"q": query_text, "format": "jsonv2",
-               "addressdetails": 1, "limit": 5}
+    params = {"q": query_text, "format": "jsonv2", "addressdetails": 1, "limit": 5}
     if country_iso:
         params["countrycodes"] = country_iso.lower()
-    SKIP_TYPES    = {"beach", "coastline", "bay"}
-    SKIP_AMENITY  = {"cafe", "restaurant", "bar", "hotel", "hostel",
-                     "resort", "hospital", "school", "college"}
+    SKIP_TYPES = {"beach", "coastline", "bay"}
+    SKIP_AMENITY = {"cafe", "restaurant", "bar", "hotel", "hostel",
+                    "resort", "hospital", "school", "college"}
     try:
-        resp    = requests.get("https://nominatim.openstreetmap.org/search",
-                               params=params, headers=headers, timeout=12)
+        resp = requests.get("https://nominatim.openstreetmap.org/search",
+                            params=params, headers=headers, timeout=12)
         results = resp.json()
         if not results:
             return None
@@ -182,12 +175,12 @@ def geocode_region(query_text: str, country_iso: str) -> dict | None:
                 continue
             if r.get("address", {}).get("amenity", "").lower() in SKIP_AMENITY:
                 continue
-            bb   = r.get("boundingbox", [])
+            bb = r.get("boundingbox", [])
             addr = r.get("address", {})
             return {
                 "lat": float(r["lat"]), "lon": float(r["lon"]),
                 "display_name": r.get("display_name", ""),
-                "state":   addr.get("state",   addr.get("county", "")),
+                "state": addr.get("state", addr.get("county", "")),
                 "country": addr.get("country", ""),
                 "boundingbox": bb,
             }
@@ -198,8 +191,7 @@ def geocode_region(query_text: str, country_iso: str) -> dict | None:
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_beaches_overpass(south: float, north: float,
-                           west: float,  east: float) -> list[dict]:
-    """Query OSM Overpass for all natural=beach features in bounding box."""
+                           west: float, east: float) -> list[dict]:
     query = f"""
 [out:json][timeout:30];
 (
@@ -210,9 +202,9 @@ def fetch_beaches_overpass(south: float, north: float,
 out center tags;
 """
     try:
-        resp     = requests.post("https://overpass-api.de/api/interpreter",
-                                 data={"data": query}, timeout=35,
-                                 headers={"User-Agent": "CoastPulseAI/5.0"})
+        resp = requests.post("https://overpass-api.de/api/interpreter",
+                             data={"data": query}, timeout=35,
+                             headers={"User-Agent": "CoastPulseAI/5.0"})
         elements = resp.json().get("elements", [])
         beaches, seen = [], set()
         for el in elements:
@@ -243,23 +235,22 @@ out center tags;
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def nominatim_beach_fallback(query_text: str, country_iso: str) -> list[dict]:
-    """Nominatim fallback — strict beach-only filtering."""
     headers = {"User-Agent": "CoastPulseAI/5.0 (contact@coastpulse.ai)"}
-    params  = {"q": f"{query_text} beach", "format": "jsonv2",
-               "addressdetails": 1, "limit": 50}
+    params = {"q": f"{query_text} beach", "format": "jsonv2",
+              "addressdetails": 1, "limit": 50}
     if country_iso:
         params["countrycodes"] = country_iso.lower()
-    ALLOW_TYPES   = {"beach", "coastline", "bay", "cove"}
+    ALLOW_TYPES = {"beach", "coastline", "bay", "cove"}
     ALLOW_CLASSES = {"natural", "water"}
     HARD_EXCL_CLS = {"amenity", "shop", "office", "building",
                      "highway", "railway", "aeroway"}
     try:
-        resp    = requests.get("https://nominatim.openstreetmap.org/search",
-                               params=params, headers=headers, timeout=12)
+        resp = requests.get("https://nominatim.openstreetmap.org/search",
+                            params=params, headers=headers, timeout=12)
         results = resp.json()
         beaches, seen = [], set()
         for item in results:
-            et = item.get("type",  "").lower()
+            et = item.get("type", "").lower()
             ec = item.get("class", "").lower()
             if ec in HARD_EXCL_CLS:
                 continue
@@ -267,7 +258,7 @@ def nominatim_beach_fallback(query_text: str, country_iso: str) -> list[dict]:
                 first = item.get("display_name", "").split(",")[0].lower()
                 if "beach" not in first and "coast" not in first:
                     continue
-            dn  = item.get("display_name", "")
+            dn = item.get("display_name", "")
             key = dn.split(",")[0].strip().lower()
             if key in seen:
                 continue
@@ -277,7 +268,7 @@ def nominatim_beach_fallback(query_text: str, country_iso: str) -> list[dict]:
                 "display_title": dn.split(",")[0].strip(),
                 "lat": float(item["lat"]), "lon": float(item["lon"]),
                 "full_address": dn,
-                "state":   addr.get("state",   addr.get("county", "")),
+                "state": addr.get("state", addr.get("county", "")),
                 "country": addr.get("country", ""),
             })
         beaches.sort(key=lambda b: b["display_title"])
@@ -287,13 +278,8 @@ def nominatim_beach_fallback(query_text: str, country_iso: str) -> list[dict]:
 
 
 def resolve_beaches_for_region(query_text: str,
-                                country_iso: str) -> tuple[list[dict], str]:
-    """
-    Returns (beaches, region_name).
-    Primary: Overpass inside geocoded bounding box.
-    Fallback: Nominatim beach-only search.
-    """
-    region      = geocode_region(query_text, country_iso)
+                               country_iso: str) -> tuple[list[dict], str]:
+    region = geocode_region(query_text, country_iso)
     region_name = query_text.strip().title()
 
     if region:
@@ -303,18 +289,19 @@ def resolve_beaches_for_region(query_text: str,
             try:
                 s, n, w, e = (float(bb[0]), float(bb[1]),
                               float(bb[2]), float(bb[3]))
-                # Expand tiny bounding boxes
                 if (n - s) < 0.3:
-                    pad  = (0.3 - (n - s)) / 2
-                    s   -= pad;  n += pad
+                    pad = (0.3 - (n - s)) / 2
+                    s -= pad;
+                    n += pad
                 if (e - w) < 0.3:
-                    pad  = (0.3 - (e - w)) / 2
-                    w   -= pad;  e += pad
+                    pad = (0.3 - (e - w)) / 2
+                    w -= pad;
+                    e += pad
                 beaches = fetch_beaches_overpass(s, n, w, e)
                 if beaches:
                     for b in beaches:
                         if not b["state"]:
-                            b["state"]   = region.get("state",   "")
+                            b["state"] = region.get("state", "")
                         if not b["country"]:
                             b["country"] = region.get("country", "")
                     return beaches, region_name
@@ -344,25 +331,25 @@ def fetch_marine_telemetry(lat: float, lon: float) -> dict | None:
 def classify_wave_risk(wave_height: float, swimmer_grade: str) -> dict:
     if swimmer_grade == "Beginner / Casual Wader":
         if wave_height > 0.6:
-            risk, adv = "HIGH",     f"{wave_height:.2f}m waves — hazardous, ankle-depth wading only."
+            risk, adv = "HIGH", f"{wave_height:.2f}m waves — hazardous, ankle-depth wading only."
         elif wave_height > 0.3:
             risk, adv = "MODERATE", f"{wave_height:.2f}m waves — stay close to shore with lifeguard."
         else:
-            risk, adv = "LOW",      f"{wave_height:.2f}m waves — calm, suitable for beginners."
+            risk, adv = "LOW", f"{wave_height:.2f}m waves — calm, suitable for beginners."
     elif swimmer_grade == "Intermediate Swimmer":
         if wave_height > 1.2:
-            risk, adv = "HIGH",     f"{wave_height:.2f}m — too strong, avoid open water."
+            risk, adv = "HIGH", f"{wave_height:.2f}m — too strong, avoid open water."
         elif wave_height > 0.7:
             risk, adv = "MODERATE", f"{wave_height:.2f}m — choppy, watch for rip currents."
         else:
-            risk, adv = "LOW",      f"{wave_height:.2f}m — good conditions."
+            risk, adv = "LOW", f"{wave_height:.2f}m — good conditions."
     else:
         if wave_height > 2.5:
-            risk, adv = "HIGH",     f"{wave_height:.2f}m — extreme swell, full safety gear required."
+            risk, adv = "HIGH", f"{wave_height:.2f}m — extreme swell, full safety gear required."
         elif wave_height > 1.5:
             risk, adv = "MODERATE", f"{wave_height:.2f}m — solid surf, standard protocols apply."
         else:
-            risk, adv = "LOW",      f"{wave_height:.2f}m — good for advanced swimmers."
+            risk, adv = "LOW", f"{wave_height:.2f}m — good for advanced swimmers."
     return {"risk_level": risk, "wave_height_m": wave_height,
             "swimmer_grade": swimmer_grade, "advice": adv}
 
@@ -370,25 +357,17 @@ def classify_wave_risk(wave_height: float, swimmer_grade: str) -> dict:
 # ==============================================================================
 # 6. SEARCH AGENT  (Agent 1)
 #
-# Runs ALL configured providers IN PARALLEL and merges results.
-# More sources = more unique snippets = better ban detection.
+# PROVIDER PRIORITY ORDER:
+#   1. Serper API   (SERPER_API_KEY)    — PRIMARY, 2500 free credits/month
+#                                         https://serper.dev
+#   2. SerpAPI      (SERPAPI_KEY)       — FALLBACK only if Serper not configured
+#                                         Use sparingly — 130 searches left!
+#   3. RSS                              — Always runs as free baseline
 #
-#   SerpAPI     (SERPAPI_KEY)               free 100 searches/month
-#               https://serpapi.com
-#
-#   Google CSE  (GOOGLE_CSE_KEY,            free 100 queries/day
-#                GOOGLE_CSE_CX)             https://developers.google.com/custom-search
-#
-#   RSS         always runs as baseline     no key, lower quality but free
-#
-# With both SerpAPI + CSE configured you get ~50 unique results per search
-# vs ~10 with RSS alone. Duplicates are removed by title deduplication.
-# Snippets are 150-300 chars of real article body text — this is what allows
-# GPT to extract ban dates, authority names, and restriction scope accurately.
+# QUERY COUNT REDUCED: 3 queries per provider (was 5) to save credits.
+# Serper uses just 1 credit per search — much more economical than SerpAPI.
 # ==============================================================================
 
-# BAN_TERMS used for deterministic pre-scoring of search results.
-# High-signal results are passed to Agent 2 first so GPT focuses on them.
 BAN_TERMS = [
     "banned", "ban", "prohibited", "prohibition", "closed", "closure",
     "restriction", "restricted", "suspended", "suspension", "not allowed",
@@ -397,34 +376,40 @@ BAN_TERMS = [
     "municipal order", "government order", "authority order",
 ]
 
+# ── 3 focused queries instead of 5 — covers all ban signals with fewer credits ──
+SEARCH_QUERIES_TEMPLATE = [
+    "{region} beach swimming ban prohibited closed",
+    "{region} sea entry banned monsoon restriction order",
+    "{region} beach safety warning drowning water sports suspended",
+]
+
+
 @st.cache_data(ttl=480, show_spinner=False)
 def agent1_search(region_name: str) -> dict:
     """
     Agent 1 — Search Agent.
-    Runs ALL configured providers and merges their results.
-    Deduplicates by title so the same article isn't seen twice.
-    Returns combined schema: {results, ban_hits, total_found, queries_used, providers_used}
+    Priority: Serper (primary) → SerpAPI (fallback) → RSS (always).
+    Reduced to 3 queries per provider to conserve credits.
     """
+    serper_key = st.secrets.get("SERPER_API_KEY", "")
     serpapi_key = st.secrets.get("SERPAPI_KEY", "")
-    gcse_key    = st.secrets.get("GOOGLE_CSE_KEY", "")
-    gcse_cx     = st.secrets.get("GOOGLE_CSE_CX",  "")
 
-    all_raw      = []   # raw {title, snippet, url} from every provider
+    all_raw = []
     providers_used = []
 
-    # ── SerpAPI ───────────────────────────────────────────────────────────────
-    if serpapi_key:
+    # ── 1. Serper API (PRIMARY — use this first, cheapest) ───────────────────
+    if serper_key:
+        serper_raw = _raw_serper(region_name, serper_key)
+        all_raw.extend(serper_raw)
+        providers_used.append(f"Serper ({len(serper_raw)} results)")
+
+    # ── 2. SerpAPI (FALLBACK — only if Serper not configured) ────────────────
+    elif serpapi_key:
         serp_raw = _raw_serpapi(region_name, serpapi_key)
         all_raw.extend(serp_raw)
         providers_used.append(f"SerpAPI ({len(serp_raw)} results)")
 
-    # ── Google CSE ────────────────────────────────────────────────────────────
-    if gcse_key and gcse_cx:
-        cse_raw = _raw_google_cse(region_name, gcse_key, gcse_cx)
-        all_raw.extend(cse_raw)
-        providers_used.append(f"Google CSE ({len(cse_raw)} results)")
-
-    # ── RSS baseline (always runs — free, supplements paid results) ───────────
+    # ── 3. RSS baseline (always runs — free) ─────────────────────────────────
     rss_raw = _raw_rss(region_name)
     all_raw.extend(rss_raw)
     providers_used.append(f"RSS ({len(rss_raw)} results)")
@@ -434,21 +419,137 @@ def agent1_search(region_name: str) -> dict:
     return result
 
 
+def _raw_serper(region_name: str, api_key: str) -> list[dict]:
+    """
+    Serper.dev Google Search API — PRIMARY provider.
+    Cost: 1 credit per search. Free plan: 2,500 credits/month.
+    Sign up: https://serper.dev  →  API keys  →  copy key
+    secrets.toml:  SERPER_API_KEY = "your-key-here"
+
+    Runs 3 queries × up to 10 results = up to 30 raw results per beach check.
+    """
+    queries = [q.format(region=region_name) for q in SEARCH_QUERIES_TEMPLATE]
+    raw = []
+    for q in queries:
+        try:
+            resp = requests.post(
+                "https://google.serper.dev/search",
+                headers={
+                    "X-API-KEY": api_key,
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "q": q,
+                    "num": 10,
+                    "hl": "en",
+                    "gl": "in",
+                    "tbs": "qdr:m",  # last month results
+                },
+                timeout=12,
+            )
+            if resp.status_code != 200:
+                continue
+            data = resp.json()
+            for r in data.get("organic", []):
+                raw.append({
+                    "title": r.get("title", ""),
+                    "snippet": r.get("snippet", ""),
+                    "url": r.get("link", ""),
+                })
+            # Also grab news results if present (often have ban announcements)
+            for r in data.get("news", []):
+                raw.append({
+                    "title": r.get("title", ""),
+                    "snippet": r.get("snippet", ""),
+                    "url": r.get("link", ""),
+                })
+        except Exception:
+            continue
+    return raw
+
+
+def _raw_serpapi(region_name: str, api_key: str) -> list[dict]:
+    """
+    SerpAPI — FALLBACK only (130 searches left, use sparingly!).
+    Runs only 3 queries when Serper is not configured.
+    secrets.toml:  SERPAPI_KEY = "your-key-here"
+    """
+    queries = [q.format(region=region_name) for q in SEARCH_QUERIES_TEMPLATE]
+    raw = []
+    for q in queries:
+        try:
+            resp = requests.get(
+                "https://serpapi.com/search",
+                params={
+                    "q": q,
+                    "api_key": api_key,
+                    "engine": "google",
+                    "num": 10,
+                    "hl": "en",
+                    "gl": "in",
+                    "tbs": "qdr:m",
+                },
+                timeout=12,
+            )
+            if resp.status_code != 200:
+                continue
+            for r in resp.json().get("organic_results", []):
+                raw.append({
+                    "title": r.get("title", ""),
+                    "snippet": r.get("snippet", ""),
+                    "url": r.get("link", ""),
+                })
+        except Exception:
+            continue
+    return raw
+
+
+def _raw_rss(region_name: str) -> list[dict]:
+    """
+    Google News RSS — free, no key, always available.
+    Runs 3 queries as free baseline.
+    """
+    queries = [q.format(region=region_name) for q in SEARCH_QUERIES_TEMPLATE]
+    seen, raw = set(), []
+    for q in queries:
+        try:
+            encoded = requests.utils.quote(q)
+            url = f"https://news.google.com/rss/search?q={encoded}&hl=en&gl=IN&ceid=IN:en"
+            resp = requests.get(url, timeout=10,
+                                headers={"User-Agent": "Mozilla/5.0 CoastPulseAI/6.0"})
+            if resp.status_code != 200:
+                continue
+            titles = re.findall(r'<title><!\[CDATA\[(.*?)\]\]></title>', resp.text)
+            descs = re.findall(r'<description><!\[CDATA\[(.*?)\]\]></description>', resp.text)
+            for i, title in enumerate(titles[1:8]):
+                t = title.strip()
+                if t in seen:
+                    continue
+                seen.add(t)
+                desc_raw = descs[i] if i < len(descs) else ""
+                desc = re.sub(r'<[^>]+>', ' ', desc_raw)
+                desc = re.sub(r'\s+', ' ', desc).strip()[:300]
+                raw.append({"title": t, "snippet": desc, "url": ""})
+        except Exception:
+            continue
+    return raw
+
+
 def _build_search_results(raw_items: list[dict]) -> dict:
     """Shared scorer/packager used by all search providers."""
     seen, all_results = set(), []
     for item in raw_items:
-        title   = item.get("title",   "").strip()
+        title = item.get("title", "").strip()
         snippet = item.get("snippet", "").strip()
-        url     = item.get("url",     "")
-        key     = title.lower()[:80]
+        url = item.get("url", "")
+        key = title.lower()[:80]
         if not title or key in seen:
             continue
         seen.add(key)
-        combined  = (title + " " + snippet).lower()
+        combined = (title + " " + snippet).lower()
         ban_score = sum(1 for t in BAN_TERMS if t in combined)
         all_results.append({"title": title, "snippet": snippet,
-                             "url": url, "ban_score": ban_score})
+                            "url": url, "ban_score": ban_score})
 
     all_results.sort(key=lambda r: r["ban_score"], reverse=True)
     ban_hits = [r for r in all_results if r["ban_score"] >= 1]
@@ -456,110 +557,28 @@ def _build_search_results(raw_items: list[dict]) -> dict:
             "total_found": len(all_results), "queries_used": []}
 
 
-def _raw_serpapi(region_name: str, api_key: str) -> list[dict]:
-    """
-    SerpAPI — returns raw list of {title, snippet, url}.
-    Free: 100 searches/month. Sign up at https://serpapi.com
-    secrets.toml:  SERPAPI_KEY = "your-key"
-    """
-    queries = [
-        f"{region_name} beach swimming ban",
-        f"{region_name} beach closed prohibited entry",
-        f"{region_name} sea entry banned monsoon restriction",
-        f"{region_name} beach safety drowning warning",
-        f"{region_name} beach water sports suspended",
-    ]
-    raw = []
-    for q in queries:
-        try:
-            resp = requests.get(
-                "https://serpapi.com/search",
-                params={"q": q, "api_key": api_key,
-                        "engine": "google", "num": 10,
-                        "hl": "en", "gl": "in",
-                        "tbs": "qdr:m"},
-                timeout=12,
-            )
-            if resp.status_code != 200:
-                continue
-            for r in resp.json().get("organic_results", []):
-                raw.append({
-                    "title":   r.get("title",   ""),
-                    "snippet": r.get("snippet", ""),
-                    "url":     r.get("link",    ""),
-                })
-        except Exception:
-            continue
-    return raw
-
-
-def _raw_google_cse(region_name: str, api_key: str, cx: str) -> list[dict]:
-    """
-    Google Custom Search Engine — returns raw list of {title, snippet, url}.
-    Free: 100 queries/day. Setup at https://programmablesearchengine.google.com
-    secrets.toml:  GOOGLE_CSE_KEY = "key"  GOOGLE_CSE_CX = "cx-id"
-    """
-    queries = [
-        f"{region_name} beach swimming ban",
-        f"{region_name} beach closed prohibited",
-        f"{region_name} sea entry banned monsoon",
-        f"{region_name} beach safety warning drowning",
-        f"{region_name} beach water sports suspended",
-    ]
-    raw = []
-    for q in queries:
-        try:
-            resp = requests.get(
-                "https://www.googleapis.com/customsearch/v1",
-                params={"q": q, "key": api_key, "cx": cx,
-                        "num": 10, "lr": "lang_en",
-                        "dateRestrict": "m1"},
-                timeout=12,
-            )
-            if resp.status_code != 200:
-                continue
-            for item in resp.json().get("items", []):
-                raw.append({
-                    "title":   item.get("title",   ""),
-                    "snippet": item.get("snippet", ""),
-                    "url":     item.get("link",    ""),
-                })
-        except Exception:
-            continue
-    return raw
-
-
+def _rss_fallback(region_name: str) -> dict:
+    """Packaged RSS-only fallback."""
+    raw = _raw_rss(region_name)
+    result = _build_search_results(raw)
+    result["providers_used"] = [f"RSS only ({len(raw)} results)"]
+    return result
 
 
 # ==============================================================================
 # 7. VERIFICATION + ADVISORY AGENT  (Agent 2)
-#
-# Receives pre-ranked search results from Agent 1.
-# GPT-4o reads the results (title + snippet) and reasons about:
-#   • Is there an active ban? (from snippets, not just titles)
-#   • What are the exact dates? Is the ban active TODAY?
-#   • Who issued it and why?
-# Then writes the final natural-language advisory.
-#
-# Temperature 0 — deterministic date reasoning.
 # ==============================================================================
 def agent2_verify_and_advise(
-    display_title: str,
-    region_name:   str,
-    search_data:   dict,
-    wave_result:   dict,
-    swimmer_grade: str,
+        display_title: str,
+        region_name: str,
+        search_data: dict,
+        wave_result: dict,
+        swimmer_grade: str,
 ) -> dict:
-    """
-    Agent 2 — Verification + Advisory Agent.
-    Returns the final advisory dict shown to the user.
-    """
     today_str = datetime.now().strftime("%d %B %Y")
 
-    # Build search evidence text — prioritise ban hits, then general results
     ban_hits = search_data.get("ban_hits", [])
-    general  = [r for r in search_data.get("results", [])
-                if r not in ban_hits]
+    general = [r for r in search_data.get("results", []) if r not in ban_hits]
 
     evidence_lines = []
     if ban_hits:
@@ -579,9 +598,9 @@ def agent2_verify_and_advise(
         "No search results available for this region."
 
     client = AzureOpenAI(
-        api_key        = st.secrets["AZURE_OPENAI_API_KEY"],
-        api_version    = "2024-08-01-preview",
-        azure_endpoint = st.secrets["AZURE_OPENAI_ENDPOINT"],
+        api_key=st.secrets["AZURE_OPENAI_API_KEY"],
+        api_version="2024-08-01-preview",
+        azure_endpoint=st.secrets["AZURE_OPENAI_ENDPOINT"],
     )
     deployment = st.secrets.get("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o")
 
@@ -640,16 +659,6 @@ CASE D — No ban evidence found:
 → ban_detected = false, ban_expired = false
 → Assess safety purely from wave risk
 
-Example reasoning:
-Today = {today_str}
-Snippet says: "ban from June 1 to July 30"
-→ Is July 30 before or after {today_str}?
-→ If July 30 is after today → CASE B → ban ACTIVE
-→ If July 30 is before today → CASE C → ban EXPIRED
-
-A regional ban (e.g. "all beaches in Diu banned") applies to the specific
-beach the user selected, even if that beach isn't named individually.
-
 ════════════════════════════════════════════
 PHASE 3 — DETERMINE STATUS
 ════════════════════════════════════════════
@@ -667,27 +676,9 @@ PHASE 4 — WRITE DESCRIPTION
 Write 3–5 warm, clear sentences as a knowledgeable friend would explain to
 someone planning a beach trip. Use simple English, no jargon.
 
-For BAN BY AUTHORITY:
-  S1: State the ban clearly — "[Beach/Region] currently has an official ban on [scope]."
-  S2: State who issued it and the reason.
-  S3: Give the exact restriction period with dates from the search results.
-  S4: Current wave conditions and what they mean for this swimmer.
-  S5: Safety closing statement.
-
-For CAUTION:
-  S1: Overall condition — "[Beach] is open but conditions require caution."
-  S2: Wave height and what it means for this swimmer's experience level.
-  S3: Practical safety advice.
-  S4: Any relevant context (e.g. recently expired ban, seasonal pattern).
-
-For SAFE:
-  S1: "[Beach] is in good shape for a visit today."
-  S2: Wave conditions and how they suit this swimmer.
-  S3: General sensible safety reminder.
-
 STRICT RULES — NEVER include in description:
 • URLs or domain names of any kind
-• Source names: "Bing", "Google", "search results", "RSS", "website"
+• Source names: "Bing", "Google", "search results", "RSS", "website", "Serper"
 • Technical terms: "ban_score", "snippet", "API", "agent"
 • Phrases like "according to our data" or "based on search results"
 
@@ -719,13 +710,13 @@ Apply all 4 phases. Reason carefully about whether ban dates are before or
 after {today_str}. Return the JSON advisory."""
 
     response = client.chat.completions.create(
-        model       = deployment,
-        messages    = [
+        model=deployment,
+        messages=[
             {"role": "system", "content": system_prompt},
-            {"role": "user",   "content": user_msg},
+            {"role": "user", "content": user_msg},
         ],
-        max_tokens  = 700,
-        temperature = 0,
+        max_tokens=700,
+        temperature=0,
     )
 
     raw = response.choices[0].message.content.strip()
@@ -737,38 +728,35 @@ after {today_str}. Return the JSON advisory."""
 
 
 # ==============================================================================
-# 8. MASTER PIPELINE — orchestrates both agents
+# 8. MASTER PIPELINE
 # ==============================================================================
 def run_two_agent_pipeline(
-    display_title: str,
-    region_name:   str,
-    wave_height:   float,
-    swimmer_grade: str,
-    status_placeholder,          # Streamlit placeholder for live agent status
+        display_title: str,
+        region_name: str,
+        wave_height: float,
+        swimmer_grade: str,
+        status_placeholder,
 ) -> dict:
-    """
-    Orchestrates the full two-agent pipeline and returns the final advisory dict.
-    status_placeholder is used to show live "Agent N doing X" messages to user.
-    """
     wave_result = classify_wave_risk(wave_height, swimmer_grade)
 
-    # ── Agent 1: Search (all configured providers run in parallel) ─────────────
+    serper_key = bool(st.secrets.get("SERPER_API_KEY", ""))
     serpapi_key = bool(st.secrets.get("SERPAPI_KEY", ""))
-    gcse_key    = bool(st.secrets.get("GOOGLE_CSE_KEY", ""))
-    active      = []
-    if serpapi_key: active.append("SerpAPI")
-    if gcse_key:    active.append("Google CSE")
-    active.append("RSS")   # always included
-    provider_label = " + ".join(active)
+
+    if serper_key:
+        provider_label = "Serper + RSS"
+    elif serpapi_key:
+        provider_label = "SerpAPI (fallback) + RSS"
+    else:
+        provider_label = "RSS only"
 
     status_placeholder.markdown(
-        f'<p class="agent-step">✨ AI agent is gathering real-time safety info and preparing your advisory...</p>',
+        '<p class="agent-step">✨ AI agent is gathering real-time safety info and preparing your advisory...</p>',
         unsafe_allow_html=True
     )
 
-    search_data    = agent1_search(region_name)
-    n_results      = search_data["total_found"]
-    n_ban_hits     = len(search_data["ban_hits"])
+    search_data = agent1_search(region_name)
+    n_results = search_data["total_found"]
+    n_ban_hits = len(search_data["ban_hits"])
     providers_used = search_data.get("providers_used", [])
     provider_detail = " | ".join(providers_used)
 
@@ -778,7 +766,6 @@ def run_two_agent_pipeline(
         unsafe_allow_html=True
     )
 
-    # ── Agent 2: Verify + Advise ──────────────────────────────────────────────
     status_placeholder.markdown(
         '<p class="agent-step">✨ AI agent is gathering real-time safety info and preparing your advisory...</p>',
         unsafe_allow_html=True
@@ -786,11 +773,11 @@ def run_two_agent_pipeline(
 
     try:
         result = agent2_verify_and_advise(
-            display_title = display_title,
-            region_name   = region_name,
-            search_data   = search_data,
-            wave_result   = wave_result,
-            swimmer_grade = swimmer_grade,
+            display_title=display_title,
+            region_name=region_name,
+            search_data=search_data,
+            wave_result=wave_result,
+            swimmer_grade=swimmer_grade,
         )
         status_placeholder.empty()
         return result
@@ -799,67 +786,16 @@ def run_two_agent_pipeline(
         return _fallback_advisory(display_title, wave_result, search_data, str(e))
 
 
-def _raw_rss(region_name: str) -> list[dict]:
-    """
-    Google News RSS — free, no key, always available.
-    Returns raw list of {title, snippet, url}.
-    Lower quality than search APIs (shorter snippets, titles only sometimes)
-    but provides a useful baseline and costs nothing.
-    """
-    queries = [
-        f"{region_name} beach swimming ban",
-        f"{region_name} beach closed prohibited",
-        f"{region_name} sea entry banned monsoon",
-        f"{region_name} beach safety warning",
-        f"{region_name} coastal restriction drowning",
-    ]
-    seen, raw = set(), []
-    for q in queries:
-        try:
-            encoded = requests.utils.quote(q)
-            url     = f"https://news.google.com/rss/search?q={encoded}&hl=en&gl=IN&ceid=IN:en"
-            resp    = requests.get(url, timeout=10,
-                                   headers={"User-Agent": "Mozilla/5.0 CoastPulseAI/6.0"})
-            if resp.status_code != 200:
-                continue
-            titles = re.findall(r'<title><!\[CDATA\[(.*?)\]\]></title>', resp.text)
-            descs  = re.findall(r'<description><!\[CDATA\[(.*?)\]\]></description>', resp.text)
-            for i, title in enumerate(titles[1:8]):
-                t = title.strip()
-                if t in seen:
-                    continue
-                seen.add(t)
-                desc_raw = descs[i] if i < len(descs) else ""
-                desc     = re.sub(r'<[^>]+>', ' ', desc_raw)
-                desc     = re.sub(r'\s+', ' ', desc).strip()[:300]
-                raw.append({"title": t, "snippet": desc, "url": ""})
-        except Exception:
-            continue
-    return raw
-
-
-def _rss_fallback(region_name: str) -> dict:
-    """
-    Packaged RSS-only fallback for when no search keys are configured at all.
-    Used only by _fallback_advisory — not by agent1_search (which always runs RSS).
-    """
-    raw    = _raw_rss(region_name)
-    result = _build_search_results(raw)
-    result["providers_used"] = [f"RSS only ({len(raw)} results)"]
-    return result
-
-
 def _fallback_advisory(display_title: str, wave_result: dict,
                        search_data: dict, error: str) -> dict:
-    """Pure-Python fallback when GPT call fails."""
     blob = " ".join(
         f"{r['title']} {r['snippet']}" for r in search_data.get("results", [])
     ).lower()
     ban_kws = ["swimming banned", "beach closed", "entry prohibited",
                "sea entry banned", "no swimming", "water sports banned"]
-    has_ban  = any(k in blob for k in ban_kws)
-    risk     = wave_result["risk_level"]
-    wh       = wave_result["wave_height_m"]
+    has_ban = any(k in blob for k in ban_kws)
+    risk = wave_result["risk_level"]
+    wh = wave_result["wave_height_m"]
 
     if has_ban:
         return {"status": "BAN BY AUTHORITY", "bg_type": "ban",
@@ -875,8 +811,7 @@ def _fallback_advisory(display_title: str, wave_result: dict,
     elif risk == "HIGH":
         return {"status": "CAUTION", "bg_type": "caution",
                 "ban_detected": False, "ban_expired": False,
-                "ban_scope": None, "ban_dates": None, "ban_by": None,
-                "ban_reason": None,
+                "ban_scope": None, "ban_dates": None, "ban_by": None, "ban_reason": None,
                 "description": (
                     f"{display_title} is open but conditions are risky. "
                     f"{wave_result['advice']} Exercise extreme caution and "
@@ -885,8 +820,7 @@ def _fallback_advisory(display_title: str, wave_result: dict,
     elif risk == "MODERATE":
         return {"status": "CAUTION", "bg_type": "caution",
                 "ban_detected": False, "ban_expired": False,
-                "ban_scope": None, "ban_dates": None, "ban_by": None,
-                "ban_reason": None,
+                "ban_scope": None, "ban_dates": None, "ban_by": None, "ban_reason": None,
                 "description": (
                     f"The sea at {display_title} is moderately choppy. "
                     f"{wave_result['advice']} Swim only in supervised zones "
@@ -895,8 +829,7 @@ def _fallback_advisory(display_title: str, wave_result: dict,
     else:
         return {"status": "SAFE", "bg_type": "safe",
                 "ban_detected": False, "ban_expired": False,
-                "ban_scope": None, "ban_dates": None, "ban_by": None,
-                "ban_reason": None,
+                "ban_scope": None, "ban_dates": None, "ban_by": None, "ban_reason": None,
                 "description": (
                     f"{display_title} looks good for a beach visit today. "
                     f"{wave_result['advice']} Always swim in supervised areas "
@@ -910,28 +843,26 @@ def _fallback_advisory(display_title: str, wave_result: dict,
 for key in ["selected_spot_data", "last_query_string", "beach_list", "region_name"]:
     if key not in st.session_state:
         st.session_state[key] = None if key in ("selected_spot_data",) else \
-                                 [] if key == "beach_list" else ""
+            [] if key == "beach_list" else ""
 
 if user_input != st.session_state.last_query_string:
     st.session_state.selected_spot_data = None
-    st.session_state.last_query_string  = user_input
-    st.session_state.beach_list         = []
-    st.session_state.region_name        = ""
+    st.session_state.last_query_string = user_input
+    st.session_state.beach_list = []
+    st.session_state.region_name = ""
 
 if user_input:
     country_iso = GLOBAL_COUNTRIES[selected_country]
 
-    # ── Resolve beach list ────────────────────────────────────────────────────
     if not st.session_state.beach_list:
         with st.spinner("🔍 Finding beaches in this region…"):
             beaches, rn = resolve_beaches_for_region(user_input, country_iso)
-            st.session_state.beach_list  = beaches
+            st.session_state.beach_list = beaches
             st.session_state.region_name = rn
 
-    beaches     = st.session_state.beach_list
+    beaches = st.session_state.beach_list
     region_name = st.session_state.region_name
 
-    # ── Beach picker ──────────────────────────────────────────────────────────
     if st.session_state.selected_spot_data is None:
         if beaches:
             c = len(beaches)
@@ -956,81 +887,73 @@ if user_input:
                 No beaches found. Try a different spelling or select a country.
                 </div>""", unsafe_allow_html=True)
 
-    # ── Run pipeline and render card ──────────────────────────────────────────
     if st.session_state.selected_spot_data is not None:
         node = st.session_state.selected_spot_data
         lat, lon = node["lat"], node["lon"]
 
-        # Wave data
-        marine          = fetch_marine_telemetry(lat, lon)
-        wave_height     = 0.0
-        daily_max       = []
-        forecast_dates  = []
+        marine = fetch_marine_telemetry(lat, lon)
+        wave_height = 0.0
+        daily_max = []
+        forecast_dates = []
 
         if marine:
             if "hourly" in marine and "wave_height" in marine["hourly"]:
-                ts  = marine["hourly"]["time"]
-                hs  = [h or 0.0 for h in marine["hourly"]["wave_height"]]
+                ts = marine["hourly"]["time"]
+                hs = [h or 0.0 for h in marine["hourly"]["wave_height"]]
                 now = datetime.now()
                 idx = min(range(len(ts)),
                           key=lambda i: abs(
-                              datetime.fromisoformat(ts[i].replace("Z","")) - now))
+                              datetime.fromisoformat(ts[i].replace("Z", "")) - now))
                 wave_height = hs[idx]
             if "daily" in marine and "wave_height_max" in marine["daily"]:
-                daily_max      = [w or 0.0 for w in marine["daily"]["wave_height_max"]]
+                daily_max = [w or 0.0 for w in marine["daily"]["wave_height_max"]]
                 forecast_dates = marine["daily"].get("time", [])
 
-        # Live agent status display
         status_ph = st.empty()
 
         output = run_two_agent_pipeline(
-            display_title       = node["display_title"],
-            region_name         = region_name,
-            wave_height         = wave_height,
-            swimmer_grade       = skill_level,
-            status_placeholder  = status_ph,
+            display_title=node["display_title"],
+            region_name=region_name,
+            wave_height=wave_height,
+            swimmer_grade=skill_level,
+            status_placeholder=status_ph,
         )
 
-        # Parse
-        status      = output.get("status",       "SAFE")
-        bg_type     = output.get("bg_type",      "safe")
-        has_ban     = output.get("ban_detected",  False)
-        ban_expired = output.get("ban_expired",   False)
-        ban_scope   = output.get("ban_scope")    or ""
-        ban_dates   = output.get("ban_dates")    or ""
-        ban_by      = output.get("ban_by")       or ""
-        ban_reason  = output.get("ban_reason")   or ""
-        ai_desc     = output.get("description",  "")
+        status = output.get("status", "SAFE")
+        bg_type = output.get("bg_type", "safe")
+        has_ban = output.get("ban_detected", False)
+        ban_expired = output.get("ban_expired", False)
+        ban_scope = output.get("ban_scope") or ""
+        ban_dates = output.get("ban_dates") or ""
+        ban_by = output.get("ban_by") or ""
+        ban_reason = output.get("ban_reason") or ""
+        ai_desc = output.get("description", "")
 
-        # Sanitise description
-        for junk in ["```html","```json","```","<div>","</div>","<p>","</p>"]:
+        for junk in ["```html", "```json", "```", "<div>", "</div>", "<p>", "</p>"]:
             ai_desc = ai_desc.replace(junk, "")
         ai_desc = ai_desc.strip()
 
-        # Status pill
         if has_ban and not ban_expired:
             display_status = "🚫 BAN BY AUTHORITY"
-            pill_class     = "badge-ban"
-            bg_type        = "ban"
+            pill_class = "badge-ban"
+            bg_type = "ban"
         elif bg_type == "caution" or status == "CAUTION":
             display_status = "⚠️ CAUTION"
-            pill_class     = "badge-caution"
+            pill_class = "badge-caution"
         else:
             display_status = "✅ SAFE"
-            pill_class     = "badge-safe"
+            pill_class = "badge-safe"
 
-        # Background images
         bg_img = {
-            "ban":     "https://images.unsplash.com/photo-1625224588466-56616e65dc59"
-                       "?auto=format&fit=crop&w=1200&q=80",
+            "ban": "https://images.unsplash.com/photo-1625224588466-56616e65dc59"
+                   "?auto=format&fit=crop&w=1200&q=80",
             "caution": "https://images.unsplash.com/photo-1519046904884-53103b34b206"
                        "?auto=format&fit=crop&w=1200&q=80",
-            "safe":    "https://images.unsplash.com/photo-1507525428034-b723cf961d3e"
-                       "?auto=format&fit=crop&w=1200&q=80",
+            "safe": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e"
+                    "?auto=format&fit=crop&w=1200&q=80",
         }.get(bg_type, "https://images.unsplash.com/photo-1507525428034-b723cf961d3e"
-                        "?auto=format&fit=crop&w=1200&q=80")
+                       "?auto=format&fit=crop&w=1200&q=80")
 
-        # Ban detail box
         ban_box_html = ""
         if has_ban and not ban_expired:
             rows = []
@@ -1049,7 +972,6 @@ if user_input:
                 '</div>'
             )
 
-        # Advisory card
         card_style = (
             "border-radius:24px;padding:40px;"
             "box-shadow:0 20px 40px rgba(15,23,42,0.16);"
@@ -1072,7 +994,6 @@ if user_input:
             unsafe_allow_html=True
         )
 
-        # 7-Day Trip Planner
         if daily_max:
             st.markdown(
                 "<br><h4 style='font-size:16px;font-weight:700;color:#0f172a;"
@@ -1082,11 +1003,11 @@ if user_input:
             cols = st.columns(7)
             for i in range(min(7, len(daily_max))):
                 p_date = datetime.strptime(forecast_dates[i], "%Y-%m-%d")
-                mw     = daily_max[i]
+                mw = daily_max[i]
                 if has_ban and not ban_expired:
-                    lbl, bg, txt = "🚫 BANNED",  "#f3e8ff", "#6d28d9"
+                    lbl, bg, txt = "🚫 BANNED", "#f3e8ff", "#6d28d9"
                 elif mw > 1.6:
-                    lbl, bg, txt = "🚫 RISK",    "#fff1f2", "#b91c1c"
+                    lbl, bg, txt = "🚫 RISK", "#fff1f2", "#b91c1c"
                 elif mw > 1.1 or status == "CAUTION":
                     lbl, bg, txt = "🟡 CAUTION", "#fef9c3", "#a16207"
                 else:
