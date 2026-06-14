@@ -4,7 +4,7 @@ CoastPulse AI is an advanced multi-agent coastal safety intelligence platform de
 
 The platform combines real-time marine telemetry, web intelligence gathering, and AI-powered legal notice verification to determine whether a beach is genuinely safe to visit and whether any active government restrictions, swimming bans, or hazard advisories are currently in effect.
 
-🚀 **Live Application:** https://coastpulse-ai.streamlit.app/
+🚀 **Live Application:** [coastpulse-ai.streamlit.app](https://coastpulse-ai.streamlit.app/)
 
 ---
 
@@ -14,30 +14,27 @@ CoastPulse AI follows a multi-agent architecture consisting of independent retri
 
 ## Agent 1 — Search & Retrieval Agent
 
-Responsible for collecting coastal safety signals from multiple external sources.
+Responsible for collecting coastal safety signals from multiple external sources. Built with an automated, **high-availability failover pipeline architecture**, it prioritizes high-throughput SERP APIs and instantly falls back to alternative data pipelines if rate limits are hit, ensuring zero-downtime intelligence harvesting.
 
 ### Functions
 
 * Searches Google News RSS feeds
-* Searches Google Custom Search Engine (CSE)
-* Searches SerpAPI results
-* Collects municipal notices
-* Collects tourism advisories
-* Collects regional news reports
-* Collects government restrictions
-* Retrieves marine forecast data
+* Queries high-throughput Google Search scraping layers (**Serper API** / **SerpAPI**)
+* Executes multi-threaded operations across diverse web endpoints
+* Collects municipal notices and regional news reports
+* Gathers tourism advisories and government restriction orders
+* Retrieves live open-ocean marine forecast data
 
 ### Output
 
 Agent 1 produces a structured evidence package containing:
 
-* News headlines
-* Snippets
+* News headlines and web snippets
 * Publication dates
-* Government notices
-* Wave forecast information
+* Verified government notices
+* Wave forecast metadata
 
-These results are forwarded to Agent 2.
+These results are dynamically forwarded to Agent 2.
 
 ---
 
@@ -47,12 +44,11 @@ Powered by Azure AI Foundry.
 
 ### Functions
 
-* Chronological reasoning
-* Date validation
-* Ban verification
-* Restriction expiry validation
-* Risk assessment
-* Safety advisory generation
+* Chronological reasoning and live calendar cross-referencing
+* Date validation (checking if bans are currently active, pending, or expired)
+* Legal restriction and beach closure verification
+* Skill-adaptive risk assessment
+* Context-aware safety advisory generation
 
 ### Model Configuration
 
@@ -60,7 +56,7 @@ Powered by Azure AI Foundry.
 temperature = 0
 ```
 
-Using deterministic reasoning ensures consistent classification and minimizes hallucinations.
+Leveraging precision prompt structuring and zero-temperature configurations (`temperature=0`) inside Azure AI Foundry eliminates hallucinations regarding legal dates, ensuring ban periods are parsed accurately against live calendars.
 
 ### Output
 
@@ -68,7 +64,7 @@ Agent 2 generates:
 
 * Beach Safety Status
 * Ban Verification Status
-* AI Safety Advisory
+* Clean AI Safety Advisory (devoid of algorithmic debris or tracking URLs)
 * Visitor Recommendations
 * Risk Explanation
 * 7-Day Planning Matrix
@@ -79,119 +75,48 @@ Agent 2 generates:
 
 ## 🌊 Real-Time Marine Telemetry
 
-Live marine forecasts are retrieved from Open-Meteo Marine APIs including:
-
-* Wave Height
-* Maximum Wave Height
-* Swell Conditions
-* Hourly Forecasts
-
----
+Live marine forecasts are retrieved from Open-Meteo Marine APIs including wave height (meters), maximum wave height, swell conditions, and hourly outlooks.
 
 ## 🏖️ Beach Discovery
 
-Automatically identifies coastal beaches using:
-
-* OpenStreetMap Nominatim
-* Overpass API
-
----
+Automatically identifies coastal beach coordinate nodes and geographical structures using OpenStreetMap Nominatim and the Overpass API.
 
 ## 🚨 Government Ban Detection
 
-Searches and validates:
-
-* Swimming bans
-* Tourist restrictions
-* Coastal closure orders
-* Hazard notices
-* Monsoon advisories
-
----
+Searches and validates swimming bans, tourist restrictions, coastal closure orders, hazard notices, and seasonal monsoon advisories.
 
 ## 🤖 AI-Powered Verification
 
-Azure AI Foundry evaluates:
-
-* Whether a restriction is active
-* Whether a restriction has expired
-* Whether news reports are still relevant
-* Whether marine conditions increase risk
-
----
+Azure AI Foundry acts as the core cognitive gateway, running temporal calculations against the absolute current date to check if extracted local bans are active or expired.
 
 ## 🏊 Skill-Based Risk Classification
 
-Risk recommendations adapt based on user skill level.
+Risk recommendations adapt based on user skill level:
 
-### Beginner / Casual Wader
-
-Most conservative thresholds.
-
-### Intermediate Swimmer
-
-Moderate thresholds.
-
-### Advanced Swimmer / Surfer
-
-More tolerant thresholds.
-
----
+* **Beginner / Casual Wader:** Most conservative thresholds.
+* **Intermediate Swimmer:** Moderate safety thresholds.
+* **Advanced Swimmer / Surfer:** More tolerant, wave-swell optimized thresholds.
 
 ## 📅 7-Day Trip Planning Matrix
 
-The application generates a weekly planning dashboard.
-
-Possible classifications:
+The application generates a unified weekly planning dashboard using custom CSS status injections.
 
 | Status  | Meaning                       |
 | ------- | ----------------------------- |
-| PERFECT | Excellent conditions          |
+| PERFECT | Excellent marine conditions   |
 | CAUTION | Visit possible with awareness |
-| RISK    | Hazardous conditions          |
+| RISK    | Hazardous physical conditions |
 | BANNED  | Active government restriction |
-
----
-
-## 🎨 User Experience
-
-Built with:
-
-* Streamlit
-* Custom CSS
-* Responsive Layouts
-* Lottie Animations
 
 ---
 
 # 🛠️ Technology Stack
 
-## Frontend
-
-* Streamlit
-* HTML
-* CSS
-
-## Backend
-
-* Python
-
-## AI Layer
-
-* Azure AI Foundry
-* Azure OpenAI SDK
-
-## Search Layer
-
-* Google News RSS
-* SerpAPI
-* Google Custom Search Engine
-
-## Data Layer
-
-* Open-Meteo Marine API
-* OpenStreetMap Nominatim API
-* Overpass API
+* **Frontend & UI:** Streamlit, Custom HTML/CSS, Lottie Animations
+* **Backend:** Python
+* **AI Layer:** Azure AI Foundry, Azure OpenAI SDK
+* **Search & Web Intelligence:** Google News RSS, Serper API, SerpAPI
+* **Geospatial & Telemetry Data:** Open-Meteo Marine API, OpenStreetMap Nominatim API, Overpass API
 
 ---
 
@@ -217,11 +142,8 @@ CoastPulse-AI/
 
 ```bash
 git clone https://github.com/smithpatel167/CoastPulse-AI.git
-
 cd CoastPulse-AI
 ```
-
----
 
 ## 2. Create Virtual Environment
 
@@ -229,7 +151,6 @@ cd CoastPulse-AI
 
 ```bash
 python -m venv venv
-
 venv\Scripts\activate
 ```
 
@@ -237,11 +158,8 @@ venv\Scripts\activate
 
 ```bash
 python3 -m venv venv
-
 source venv/bin/activate
 ```
-
----
 
 ## 3. Install Dependencies
 
@@ -249,44 +167,20 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Example requirements:
-
-```text
-streamlit
-requests
-openai
-streamlit-lottie
-pandas
-feedparser
-```
-
 ---
 
 ## 4. Configure Secrets
 
-Create:
-
-```text
-.streamlit/secrets.toml
-```
-
-Add:
+Create a `.streamlit/secrets.toml` file:
 
 ```toml
 AZURE_OPENAI_API_KEY = "YOUR_AZURE_KEY"
-
 AZURE_OPENAI_ENDPOINT = "https://YOUR_RESOURCE.openai.azure.com/"
-
 AZURE_OPENAI_DEPLOYMENT_NAME = "gpt-4o"
 
+SERPER_API_KEY = "YOUR_SERPER_KEY"
 SERPAPI_KEY = "YOUR_SERPAPI_KEY"
-
-GOOGLE_CSE_KEY = "YOUR_CSE_KEY"
-
-GOOGLE_CSE_CX = "YOUR_CSE_ENGINE_ID"
 ```
-
----
 
 ## 5. Run Application
 
@@ -294,130 +188,39 @@ GOOGLE_CSE_CX = "YOUR_CSE_ENGINE_ID"
 streamlit run app.py
 ```
 
-Application will launch at:
-
-```text
-http://localhost:8501
-```
-
 ---
 
 # 🌐 API References
 
-## OpenStreetMap Nominatim
-
-Used for:
-
-* Geocoding
-* Reverse Geocoding
-* Location Discovery
-
-Documentation:
-
-https://nominatim.org/
-
----
-
-## Overpass API
-
-Used for:
-
-* Beach Discovery
-* Geographic Feature Extraction
-
-Documentation:
-
-https://overpass-api.de/
-
----
-
-## Open-Meteo Marine API
-
-Used for:
-
-* Wave Height
-* Maximum Wave Height
-* Marine Forecasting
-
-Documentation:
-
-https://open-meteo.com/
-
----
-
-## Azure AI Foundry
-
-Used for:
-
-* Reasoning
-* Ban Verification
-* Advisory Generation
-
-Documentation:
-
-https://azure.microsoft.com/products/ai-foundry/
-
----
-
-## SerpAPI
-
-Used for:
-
-* Google Search Results
-* Web Intelligence Collection
-
-Documentation:
-
-https://serpapi.com/
-
----
-
-## Google Custom Search Engine
-
-Used for:
-
-* Focused Search Retrieval
-* Government Notice Discovery
-
-Documentation:
-
-https://programmablesearchengine.google.com/
+* **OpenStreetMap Nominatim:** Geocoding and location discovery. (https://nominatim.org/)
+* **Overpass API:** Geographic feature extraction for mapping coastal boundaries. (https://overpass-api.de/)
+* **Open-Meteo Marine API:** High-resolution wave and swell marine forecasting. (https://open-meteo.com/)
+* **Azure AI Foundry:** Core reasoning gateway and deterministic safety assessment generator. (https://azure.microsoft.com/products/ai-foundry/)
+* **Serper API & SerpAPI:** High-throughput, resilient web intelligence retrieval infrastructure.
 
 ---
 
 # 🔒 Safety Philosophy
 
-CoastPulse AI does not rely solely on wave conditions.
+CoastPulse AI rejects single-datapoint assessments. A beach may appear physically calm and safe while simultaneously being subject to sudden monsoon bans or hazardous environmental closures.
 
-A beach may appear physically safe while simultaneously being subject to:
+The platform guarantees safety by executing a zero-trust multi-point validation check:
 
-* Government restrictions
-* Temporary closures
-* Monsoon bans
-* Hazard advisories
+1. **Physical Ocean Conditions** (Waves, Swell, Speed)
+2. **Legal Restrictions** (Municipal bans, Administrative orders)
+3. **News Intelligence** (Local drowning alerts, high-signal warnings)
 
-The platform therefore combines:
-
-1. Physical ocean conditions
-2. Legal restrictions
-3. News intelligence
-4. AI reasoning
-
-to generate a unified safety assessment.
+Only after all validation layers agree is a final safety recommendation generated.
 
 ---
 
 # 🚀 Future Roadmap
 
-Planned enhancements include:
-
-* Weather integration
-* Rip current prediction
-* Satellite imagery support
-* Multilingual advisories
-* Mobile application
-* Push notifications
-* Historical safety analytics
+* Real-time rip current machine learning prediction maps
+* Satellite SAR imagery integration for surface water anomaly detection
+* Multilingual automated advisories for international travelers
+* Mobile application with geo-fenced push notifications
+* Historical coastal safety analytics engine
 
 ---
 
@@ -425,12 +228,7 @@ Planned enhancements include:
 
 **Agents League Hackathon**
 
-Built using:
-
-* Azure AI Foundry
-* Streamlit
-* Open-Meteo APIs
-* OpenStreetMap Ecosystem
+Built using Azure AI Foundry, Streamlit, Open-Meteo APIs, and the OpenStreetMap ecosystem.
 
 ---
 
