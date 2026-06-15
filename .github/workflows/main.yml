@@ -1,0 +1,16 @@
+name: Keep Streamlit App Awake
+
+on:
+  schedule:
+    # Runs every 6 hours (at minute 0 of hours 0, 6, 12, 18 UTC)
+    - cron: '0 */6 * * *'
+  # Allows you to manually trigger the ping from the Actions tab to test it
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Streamlit URL
+        run: |
+          curl -I https://coastpulse-ai.streamlit.app
